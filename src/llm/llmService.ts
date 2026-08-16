@@ -21,6 +21,10 @@ export class LlmService {
 		return this.provider.name;
 	}
 
+	async checkHealth(): Promise<boolean> {
+		return this.provider.checkHealth();
+	}
+
 	async infill(prefix: string, suffix: string, options: InfillOptions): Promise<string> {
 		try {
 			return await this.provider.infill(prefix, suffix, options);

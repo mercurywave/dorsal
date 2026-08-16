@@ -21,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 		statusBar,
 		nextEditController,
 		inlineEditController,
+		vscode.commands.registerCommand('dorsal.showMenu', () => statusBar.showMenu()),
 		vscode.languages.registerInlineCompletionItemProvider({ pattern: '**' }, completionProvider),
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('dorsal')) {

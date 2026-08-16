@@ -16,6 +16,10 @@
   "contributes": {
     "commands": [
       {
+        "command": "dorsal.showMenu",
+        "title": "Dorsal: Show Menu"
+      },
+      {
         "command": "dorsal.suggestNextEdit",
         "title": "Dorsal: Suggest Next Edit"
       },
