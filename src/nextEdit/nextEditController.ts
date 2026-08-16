@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readConfig } from '../config';
 import { LlmService } from '../llm/llmService';
-import { clearSuggestionDecorations, renderSuggestion } from './decorationRenderer';
+import { clearSuggestionDecorations, renderSuggestion, SuggestionCodeLensProvider } from './decorationRenderer';
 import { NextEditService, NextEditSuggestion } from './nextEditService';
 
 const AUTO_TRIGGER_IDLE_MS = 1500;
@@ -18,7 +18,11 @@ export class NextEditController implements vscode.Disposable {
 	private current: ActiveSuggestion | undefined;
 	private autoTriggerTimer: ReturnType<typeof setTimeout> | undefined;
 
-	constructor(llmService: LlmService, private readonly log: (message: string) => void) {
+	constructor(
+		llmService: LlmService,
+		private readonly log: (message: string) => void,
+		private readonly codeLensProvider: SuggestionCodeLensProvider,
+	) {
 		this.service = new NextEditService(llmService, log);
 
 		this.disposables.push(
@@ -75,6 +79,11 @@ export class NextEditController implements vscode.Disposable {
 		}
 		this.current = { editor, suggestion };
 		renderSuggestion(editor, suggestion.range, suggestion.replacementText);
+		this.codeLensProvider.show(editor.document.uri, suggestion.range, {
+			acceptCommand: 'dorsal.acceptNextEdit',
+			acceptTitle: '$(check) Accept Suggestion (Tab)',
+			dismissCommand: 'dorsal.dismissNextEditSuggestion',
+		});
 		void vscode.commands.executeCommand('setContext', CONTEXT_KEY, true);
 	}
 
@@ -98,6 +107,7 @@ export class NextEditController implements vscode.Disposable {
 			clearSuggestionDecorations(this.current.editor);
 		}
 		this.current = undefined;
+		this.codeLensProvider.hide();
 		void vscode.commands.executeCommand('setContext', CONTEXT_KEY, false);
 	}
 

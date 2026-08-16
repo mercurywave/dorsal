@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readConfig } from '../config';
 import { LlmService } from '../llm/llmService';
-import { clearSuggestionDecorations, renderSuggestion } from '../nextEdit/decorationRenderer';
+import { clearSuggestionDecorations, renderSuggestion, SuggestionCodeLensProvider } from '../nextEdit/decorationRenderer';
 
 const CONTEXT_KEY = 'dorsalInlineEditPreviewVisible';
 const CONTEXT_LINES = 20;
@@ -23,6 +23,7 @@ export class InlineEditController implements vscode.Disposable {
 	constructor(
 		private readonly llmService: LlmService,
 		private readonly log: (message: string) => void,
+		private readonly codeLensProvider: SuggestionCodeLensProvider,
 	) {
 		this.disposables.push(
 			vscode.commands.registerCommand('dorsal.inlineEdit', () => this.start()),
@@ -92,6 +93,11 @@ export class InlineEditController implements vscode.Disposable {
 
 		this.pending = { editor, range, replacementText };
 		renderSuggestion(editor, range, replacementText);
+		this.codeLensProvider.show(editor.document.uri, range, {
+			acceptCommand: 'dorsal.acceptInlineEdit',
+			acceptTitle: '$(check) Accept Edit (Tab)',
+			dismissCommand: 'dorsal.cancelInlineEdit',
+		});
 		void vscode.commands.executeCommand('setContext', CONTEXT_KEY, true);
 	}
 
@@ -119,6 +125,7 @@ export class InlineEditController implements vscode.Disposable {
 			clearSuggestionDecorations(this.pending.editor);
 		}
 		this.pending = undefined;
+		this.codeLensProvider.hide();
 		void vscode.commands.executeCommand('setContext', CONTEXT_KEY, false);
 	}
 
