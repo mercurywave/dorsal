@@ -38,6 +38,7 @@ export class NextEditService {
 					{ role: 'user', content: userPrompt },
 				],
 				{ maxTokens, model },
+				'nextEdit',
 			);
 		} catch (err) {
 			this.log(`next edit suggestion request failed: ${String(err)}`);

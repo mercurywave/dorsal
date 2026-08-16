@@ -40,7 +40,7 @@ export class DorsalInlineCompletionProvider implements vscode.InlineCompletionIt
 				maxTokens: config.completions.maxTokens,
 				model: config.completions.model,
 				stop: ['\n\n'],
-			});
+			}, 'completions');
 		} catch (err) {
 			this.log(`inline completion request failed: ${String(err)}`);
 			return undefined;

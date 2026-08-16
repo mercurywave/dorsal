@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LlmService } from './llm/llmService';
+import { LlmService, Workflow } from './llm/llmService';
 
 interface DorsalMenuItem extends vscode.QuickPickItem {
 	action: () => void | Thenable<void>;
@@ -7,17 +7,37 @@ interface DorsalMenuItem extends vscode.QuickPickItem {
 
 export class DorsalStatusBar implements vscode.Disposable {
 	private readonly item: vscode.StatusBarItem;
+	private readonly subscription: vscode.Disposable;
+	private readonly erroredWorkflows = new Set<Workflow>();
 
 	constructor(private readonly llmService: LlmService) {
 		this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 		this.item.command = 'dorsal.showMenu';
 		this.item.show();
+		this.subscription = this.llmService.onDidChangeWorkflowStatus(({ workflow, status }) => {
+			if (status === 'error') {
+				this.erroredWorkflows.add(workflow);
+			} else {
+				this.erroredWorkflows.delete(workflow);
+			}
+			this.refresh();
+		});
 		this.refresh();
 	}
 
 	refresh(): void {
-		this.item.text = '$(fish4-happy)';
-		this.item.tooltip = 'Dorsal AI assistant - click to configure';
+		const hasError = this.erroredWorkflows.size > 0;
+		this.item.text = hasError ? '$(fish4-happy) $(error)' : '$(fish4-happy)';
+		this.item.backgroundColor = hasError ? new vscode.ThemeColor('statusBarItem.errorBackground') : undefined;
+		this.item.tooltip = hasError
+			? `Dorsal AI assistant - recent error in: ${[...this.erroredWorkflows].join(', ')}`
+			: 'Dorsal AI assistant - click to configure';
+	}
+
+	// Called when the user changes any dorsal.* setting, since a reconfigured provider deserves a clean slate.
+	resetErrors(): void {
+		this.erroredWorkflows.clear();
+		this.refresh();
 	}
 
 	async showMenu(): Promise<void> {
@@ -68,6 +88,7 @@ export class DorsalStatusBar implements vscode.Disposable {
 	}
 
 	dispose(): void {
+		this.subscription.dispose();
 		this.item.dispose();
 	}
 }

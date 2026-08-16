@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('dorsal')) {
 				llmService.reload(readConfig());
-				statusBar.refresh();
+				statusBar.resetErrors();
 			}
 		}),
 	);
