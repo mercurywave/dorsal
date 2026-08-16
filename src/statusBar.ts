@@ -10,7 +10,7 @@ export class DorsalStatusBar implements vscode.Disposable {
 	private readonly subscription: vscode.Disposable;
 	private readonly erroredWorkflows = new Set<Workflow>();
 
-	constructor(private readonly llmService: LlmService) {
+	constructor(private readonly llmService: LlmService, private readonly outputChannel: vscode.OutputChannel) {
 		this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 		this.item.command = 'dorsal.showMenu';
 		this.item.show();
@@ -79,6 +79,11 @@ export class DorsalStatusBar implements vscode.Disposable {
 				label: `$(${autoTriggerEnabled ? 'check' : 'circle-slash'}) Auto-Trigger Next Edit: ${autoTriggerEnabled ? 'On' : 'Off'}`,
 				description: 'Toggle automatic next-edit suggestions',
 				action: () => this.toggleSetting('nextEditSuggestions.autoTrigger', autoTriggerEnabled),
+			},
+			{
+				label: '$(output) Show Logs',
+				description: 'Open the Dorsal output channel',
+				action: () => this.outputChannel.show(),
 			},
 		];
 	}

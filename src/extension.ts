@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const log = (message: string) => output.appendLine(message);
 
 	const llmService = new LlmService(readConfig(), log);
-	const statusBar = new DorsalStatusBar(llmService);
+	const statusBar = new DorsalStatusBar(llmService, output);
 	const completionProvider = new DorsalInlineCompletionProvider(llmService, log);
 	const codeLensProvider = new SuggestionCodeLensProvider();
 	const nextEditController = new NextEditController(llmService, log, codeLensProvider);
