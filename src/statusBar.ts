@@ -12,8 +12,7 @@ export class DorsalStatusBar implements vscode.Disposable {
 	}
 
 	refresh(): void {
-		const providerName = this.llmService.getActiveProviderName();
-		this.item.text = `$(sparkle) Dorsal: ${providerName}`;
+		this.item.text = '$(fish4-happy)';
 		this.item.tooltip = 'Dorsal AI assistant - click to configure';
 	}
 
