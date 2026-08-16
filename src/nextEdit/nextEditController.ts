@@ -37,8 +37,21 @@ export class NextEditController implements vscode.Disposable {
 	private onDidChangeTextDocument(event: vscode.TextDocumentChangeEvent): void {
 		this.clearCurrentSuggestion();
 
+		if (this.autoTriggerTimer) {
+			clearTimeout(this.autoTriggerTimer);
+			this.autoTriggerTimer = undefined;
+		}
+
 		const config = readConfig();
 		if (!config.nextEditSuggestions.enabled || !config.nextEditSuggestions.autoTrigger || event.contentChanges.length === 0) {
+			return;
+		}
+		// Undo/redo and pure deletions aren't the user "typing"; only fresh input should
+		// trigger a new suggestion.
+		if (event.reason === vscode.TextDocumentChangeReason.Undo || event.reason === vscode.TextDocumentChangeReason.Redo) {
+			return;
+		}
+		if (!event.contentChanges.some((change) => change.text.length > 0)) {
 			return;
 		}
 		const editor = vscode.window.activeTextEditor;
@@ -46,9 +59,6 @@ export class NextEditController implements vscode.Disposable {
 			return;
 		}
 
-		if (this.autoTriggerTimer) {
-			clearTimeout(this.autoTriggerTimer);
-		}
 		const changedLine = event.contentChanges[0].range.start.line;
 		this.autoTriggerTimer = setTimeout(() => {
 			void this.requestSuggestion(editor, changedLine);

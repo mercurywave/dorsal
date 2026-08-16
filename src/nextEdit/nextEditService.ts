@@ -68,5 +68,15 @@ export function parseSuggestion(response: string, document: vscode.TextDocument)
 	}
 
 	const range = new vscode.Range(startLine, 0, endLine, document.lineAt(endLine).text.length);
+	const original = document.getText(range);
+	if (normalizeWhitespace(original) === normalizeWhitespace(match[3])) {
+		// Not a meaningful edit (whitespace-only diff); treat like no suggestion.
+		return undefined;
+	}
+
 	return { range, replacementText: match[3] };
+}
+
+function normalizeWhitespace(text: string): string {
+	return text.replace(/\s+/g, ' ').trim();
 }
