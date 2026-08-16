@@ -38,6 +38,7 @@ export class DorsalInlineCompletionProvider implements vscode.InlineCompletionIt
 		try {
 			completion = await this.llmService.infill(prefix, suffix, {
 				maxTokens: config.completions.maxTokens,
+				model: config.completions.model,
 				stop: ['\n\n'],
 			});
 		} catch (err) {

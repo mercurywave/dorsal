@@ -29,11 +29,16 @@ All settings are under the `dorsal.*` prefix:
 * `dorsal.llamaCpp.baseUrl` - llama.cpp server URL (default `http://127.0.0.1:8080`).
 * `dorsal.llamaCpp.model` - optional model name to request, for multi-model setups (e.g. llama-swap).
 * `dorsal.llamaCpp.apiKey` - optional bearer token for the llama.cpp server.
-* `dorsal.completions.enabled` / `dorsal.completions.debounceMs` / `dorsal.completions.maxTokens` -
+
+`dorsal.llamaCpp.model` is the default model for all features. Each feature can override it with its
+model setting; leave an override empty to use the default:
+
+* `dorsal.completions.enabled` / `dorsal.completions.debounceMs` / `dorsal.completions.maxTokens` /
+  `dorsal.completions.model` -
   tab completion behavior.
 * `dorsal.nextEditSuggestions.enabled` / `dorsal.nextEditSuggestions.autoTrigger` /
-  `dorsal.nextEditSuggestions.maxTokens` - next edit suggestion behavior.
-* `dorsal.inlineEdit.maxTokens` - response size for `Ctrl+I` inline edits.
+  `dorsal.nextEditSuggestions.maxTokens` / `dorsal.nextEditSuggestions.model` - next edit suggestion behavior.
+* `dorsal.inlineEdit.maxTokens` / `dorsal.inlineEdit.model` - response size and model for `Ctrl+I` inline edits.
 
 
 ## Commands & Keybindings

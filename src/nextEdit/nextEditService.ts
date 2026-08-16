@@ -23,7 +23,7 @@ export class NextEditService {
 		private readonly log: (message: string) => void,
 	) {}
 
-	async suggest(document: vscode.TextDocument, changedLine: number, maxTokens: number): Promise<NextEditSuggestion | undefined> {
+	async suggest(document: vscode.TextDocument, changedLine: number, maxTokens: number, model: string): Promise<NextEditSuggestion | undefined> {
 		const numberedLines: string[] = [];
 		for (let i = 0; i < document.lineCount; i++) {
 			numberedLines.push(`${i + 1}: ${document.lineAt(i).text}`);
@@ -37,7 +37,7 @@ export class NextEditService {
 					{ role: 'system', content: SYSTEM_PROMPT },
 					{ role: 'user', content: userPrompt },
 				],
-				{ maxTokens },
+				{ maxTokens, model },
 			);
 		} catch (err) {
 			this.log(`next edit suggestion request failed: ${String(err)}`);

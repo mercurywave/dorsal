@@ -64,7 +64,12 @@ export class NextEditController implements vscode.Disposable {
 		if (!config.nextEditSuggestions.enabled) {
 			return;
 		}
-		const suggestion = await this.service.suggest(editor.document, changedLine, config.nextEditSuggestions.maxTokens);
+		const suggestion = await this.service.suggest(
+			editor.document,
+			changedLine,
+			config.nextEditSuggestions.maxTokens,
+			config.nextEditSuggestions.model,
+		);
 		if (!suggestion || editor !== vscode.window.activeTextEditor) {
 			return;
 		}

@@ -37,7 +37,7 @@ export class LlamaCppProvider implements LlmProvider {
 				n_predict: options.maxTokens,
 				temperature: options.temperature ?? 0.2,
 				stop: options.stop,
-				...(this.model ? { model: this.model } : {}),
+				...((options.model || this.model) ? { model: options.model || this.model } : {}),
 			}),
 		}, 15_000);
 		if (!res.ok) {
@@ -55,7 +55,7 @@ export class LlamaCppProvider implements LlmProvider {
 				messages,
 				max_tokens: options.maxTokens,
 				temperature: options.temperature ?? 0.2,
-				...(this.model ? { model: this.model } : {}),
+				...((options.model || this.model) ? { model: options.model || this.model } : {}),
 			}),
 		}, 30_000);
 		if (!res.ok) {

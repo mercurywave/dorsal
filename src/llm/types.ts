@@ -1,5 +1,6 @@
 export interface InfillOptions {
 	maxTokens: number;
+	model?: string;
 	stop?: string[];
 	temperature?: number;
 }
@@ -11,6 +12,7 @@ export interface ChatMessage {
 
 export interface ChatOptions {
 	maxTokens: number;
+	model?: string;
 	temperature?: number;
 }
 

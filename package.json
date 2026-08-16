@@ -117,6 +117,12 @@
             "default": 128,
             "order": 3,
             "description": "Maximum tokens to request for an inline completion."
+          },
+          "dorsal.completions.model": {
+            "type": "string",
+            "default": "",
+            "order": 4,
+            "description": "Optional model override for inline completions. Leave empty to use the default model."
           }
         }
       },
@@ -141,6 +147,12 @@
             "default": 512,
             "order": 3,
             "description": "Maximum tokens to request for a next-edit suggestion."
+          },
+          "dorsal.nextEditSuggestions.model": {
+            "type": "string",
+            "default": "",
+            "order": 4,
+            "description": "Optional model override for next-edit suggestions. Leave empty to use the default model."
           }
         }
       },
@@ -153,6 +165,12 @@
             "default": 1024,
             "order": 1,
             "description": "Maximum tokens to request for an inline quick edit."
+          },
+          "dorsal.inlineEdit.model": {
+            "type": "string",
+            "default": "",
+            "order": 2,
+            "description": "Optional model override for inline edits. Leave empty to use the default model."
           }
         }
       }

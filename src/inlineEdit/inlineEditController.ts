@@ -76,7 +76,7 @@ export class InlineEditController implements vscode.Disposable {
 						{ role: 'system', content: SYSTEM_PROMPT },
 						{ role: 'user', content: userPrompt },
 					],
-					{ maxTokens: config.inlineEdit.maxTokens },
+					{ maxTokens: config.inlineEdit.maxTokens, model: config.inlineEdit.model },
 				),
 			);
 		} catch (err) {
