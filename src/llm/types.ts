@@ -13,6 +13,7 @@ export interface ChatMessage {
 export interface ChatOptions {
 	maxTokens: number;
 	model?: string;
+	stop?: string[];
 	temperature?: number;
 }
 

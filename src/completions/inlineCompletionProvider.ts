@@ -6,6 +6,9 @@ import { LlmService } from '../llm/llmService';
 const MAX_PREFIX_CHARS = 4000;
 const MAX_SUFFIX_CHARS = 2000;
 
+const CHAT_SYSTEM_PROMPT = 'You are an inline code-completion assistant. Reply with ONLY the text to insert at the cursor, '
+	+ 'with no explanation or markdown. Do not repeat text after the cursor.';
+
 export class DorsalInlineCompletionProvider implements vscode.InlineCompletionItemProvider {
 	private pendingTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -36,11 +39,20 @@ export class DorsalInlineCompletionProvider implements vscode.InlineCompletionIt
 
 		let completion: string;
 		try {
-			completion = await this.llmService.infill(prefix, suffix, {
-				maxTokens: config.completions.maxTokens,
-				model: config.completions.model,
-				stop: ['\n\n'],
-			}, 'completions');
+			completion = config.completions.useInfillApi
+				? await this.llmService.infill(prefix, suffix, {
+					maxTokens: config.completions.maxTokens,
+					model: config.completions.model,
+					stop: ['\n\n'],
+				}, 'completions')
+				: await this.llmService.chat(
+					[
+						{ role: 'system', content: CHAT_SYSTEM_PROMPT },
+						{ role: 'user', content: `Code before cursor:\n${prefix}\n\nCode after cursor:\n${suffix}\n\nText to insert:` },
+					],
+					{ maxTokens: config.completions.maxTokens, model: config.completions.model, stop: ['\n\n'] },
+					'completions',
+				);
 		} catch (err) {
 			this.log(`inline completion request failed: ${String(err)}`);
 			return undefined;

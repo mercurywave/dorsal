@@ -33,11 +33,12 @@ All settings are under the `dorsal.*` prefix:
 `dorsal.llamaCpp.model` is the default model for all features. Each feature can override it with its
 model setting; leave an override empty to use the default:
 
-* `dorsal.completions.enabled` / `dorsal.completions.debounceMs` / `dorsal.completions.maxTokens` /
+* `dorsal.completions.enabled` / `dorsal.completions.useInfillApi` / `dorsal.completions.debounceMs` / `dorsal.completions.maxTokens` /
   `dorsal.completions.model` -
   tab completion behavior.
 * `dorsal.nextEditSuggestions.enabled` / `dorsal.nextEditSuggestions.autoTrigger` /
-  `dorsal.nextEditSuggestions.maxTokens` / `dorsal.nextEditSuggestions.model` - next edit suggestion behavior.
+  `dorsal.nextEditSuggestions.useInfillApi` / `dorsal.nextEditSuggestions.maxTokens` /
+  `dorsal.nextEditSuggestions.model` - next edit suggestion behavior.
 * `dorsal.inlineEdit.maxTokens` / `dorsal.inlineEdit.model` - response size and model for `Ctrl+I` inline edits.
 
 
@@ -52,6 +53,7 @@ model setting; leave an override empty to use the default:
 
 * Next edit suggestions rely on the model returning a strict, parseable format;
   malformed responses are silently skipped rather than shown.
-* The OpenAI-compatible fallback has no native fill-in-middle API, so tab
-  completions may be lower quality when running in fallback mode.
+* `useInfillApi` is enabled by default for completions and next-edit suggestions.
+  Disable it for models without llama.cpp's `/infill` endpoint; Dorsal will use
+  the OpenAI-compatible `/v1/chat/completions` endpoint instead.
 

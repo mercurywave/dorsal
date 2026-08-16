@@ -83,6 +83,7 @@ export class NextEditController implements vscode.Disposable {
 			changedLine,
 			config.nextEditSuggestions.maxTokens,
 			config.nextEditSuggestions.model,
+			config.nextEditSuggestions.useInfillApi,
 		);
 		if (!suggestion || editor !== vscode.window.activeTextEditor) {
 			return;

@@ -23,7 +23,13 @@ export class NextEditService {
 		private readonly log: (message: string) => void,
 	) {}
 
-	async suggest(document: vscode.TextDocument, changedLine: number, maxTokens: number, model: string): Promise<NextEditSuggestion | undefined> {
+	async suggest(
+		document: vscode.TextDocument,
+		changedLine: number,
+		maxTokens: number,
+		model: string,
+		useInfillApi: boolean,
+	): Promise<NextEditSuggestion | undefined> {
 		const numberedLines: string[] = [];
 		for (let i = 0; i < document.lineCount; i++) {
 			numberedLines.push(`${i + 1}: ${document.lineAt(i).text}`);
@@ -32,14 +38,16 @@ export class NextEditService {
 
 		let response: string;
 		try {
-			response = await this.llmService.chat(
-				[
-					{ role: 'system', content: SYSTEM_PROMPT },
-					{ role: 'user', content: userPrompt },
-				],
-				{ maxTokens, model },
-				'nextEdit',
-			);
+			response = useInfillApi
+				? await this.llmService.infill(`${SYSTEM_PROMPT}\n\n${userPrompt}\n\nResponse:\n`, '', { maxTokens, model }, 'nextEdit')
+				: await this.llmService.chat(
+					[
+						{ role: 'system', content: SYSTEM_PROMPT },
+						{ role: 'user', content: userPrompt },
+					],
+					{ maxTokens, model },
+					'nextEdit',
+				);
 		} catch (err) {
 			this.log(`next edit suggestion request failed: ${String(err)}`);
 			return undefined;
