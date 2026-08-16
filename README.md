@@ -1,71 +1,52 @@
-# dorsal
+# Dorsal
 
-No-frills inline AI coding assistant plugin for Visual Studio Code
+No-frills inline AI coding assistant for Visual Studio Code. Dorsal talks to a
+[llama.cpp](https://github.com/ggml-org/llama.cpp) server (`llama-server`) to provide:
 
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+* **Tab completions** - ghost-text inline completions as you type, using llama.cpp's
+  `/infill` fill-in-middle endpoint.
+* **Next edit suggestions** - after you make a change, Dorsal proposes a related
+  follow-up edit elsewhere in the file (shown as strikethrough/ghost-text diff);
+  press `Tab` to accept or `Escape` to dismiss.
+* **Inline quick edits** - select code, press `Ctrl+I`, describe the change in
+  plain English, and preview the diff before accepting (`Ctrl+Enter`) or
+  cancelling (`Escape`).
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Run a local llama.cpp server, e.g.:
+
+```sh
+llama-server -m your-model.gguf --port 8080
+```
+
+Dorsal talks to it over its REST API - no other setup is required.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+All settings are under the `dorsal.*` prefix:
 
-For example:
+* `dorsal.llamaCpp.baseUrl` - llama.cpp server URL (default `http://127.0.0.1:8080`).
+* `dorsal.llamaCpp.model` - optional model name to request, for multi-model setups (e.g. llama-swap).
+* `dorsal.llamaCpp.apiKey` - optional bearer token for the llama.cpp server.
+* `dorsal.completions.enabled` / `dorsal.completions.debounceMs` / `dorsal.completions.maxTokens` -
+  tab completion behavior.
+* `dorsal.nextEditSuggestions.enabled` / `dorsal.nextEditSuggestions.autoTrigger` /
+  `dorsal.nextEditSuggestions.maxTokens` - next edit suggestion behavior.
+* `dorsal.inlineEdit.maxTokens` - response size for `Ctrl+I` inline edits.
 
-This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+## Commands & Keybindings
+
+* `Dorsal: Suggest Next Edit` - manually request a next-edit suggestion.
+* `Dorsal: Accept Next Edit Suggestion` (`Tab`) / `Dorsal: Dismiss Next Edit Suggestion` (`Escape`).
+* `Dorsal: Edit with AI` (`Ctrl+I`) - open the inline edit prompt for the current selection.
+* `Dorsal: Accept Inline Edit` (`Ctrl+Enter`) / `Dorsal: Cancel Inline Edit` (`Escape`).
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+* Next edit suggestions rely on the model returning a strict, parseable format;
+  malformed responses are silently skipped rather than shown.
+* The OpenAI-compatible fallback has no native fill-in-middle API, so tab
+  completions may be lower quality when running in fallback mode.
 
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**

@@ -406,3 +406,6 @@ install-state.gz
 *.zip
 
 node_modules
+
+# VS Code extension test runner downloads and user data
+.vscode-test/

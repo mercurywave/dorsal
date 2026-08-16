@@ -9,13 +9,148 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "dorsal.helloWorld",
-        "title": "Hello World"
+        "command": "dorsal.suggestNextEdit",
+        "title": "Dorsal: Suggest Next Edit"
+      },
+      {
+        "command": "dorsal.acceptNextEdit",
+        "title": "Dorsal: Accept Next Edit Suggestion"
+      },
+      {
+        "command": "dorsal.dismissNextEditSuggestion",
+        "title": "Dorsal: Dismiss Next Edit Suggestion"
+      },
+      {
+        "command": "dorsal.inlineEdit",
+        "title": "Dorsal: Edit with AI"
+      },
+      {
+        "command": "dorsal.acceptInlineEdit",
+        "title": "Dorsal: Accept Inline Edit"
+      },
+      {
+        "command": "dorsal.cancelInlineEdit",
+        "title": "Dorsal: Cancel Inline Edit"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "dorsal.acceptNextEdit",
+        "key": "tab",
+        "when": "editorTextFocus && dorsalNextEditSuggestionVisible"
+      },
+      {
+        "command": "dorsal.dismissNextEditSuggestion",
+        "key": "escape",
+        "when": "editorTextFocus && dorsalNextEditSuggestionVisible"
+      },
+      {
+        "command": "dorsal.inlineEdit",
+        "key": "ctrl+i",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "dorsal.acceptInlineEdit",
+        "key": "ctrl+enter",
+        "when": "editorTextFocus && dorsalInlineEditPreviewVisible"
+      },
+      {
+        "command": "dorsal.cancelInlineEdit",
+        "key": "escape",
+        "when": "editorTextFocus && dorsalInlineEditPreviewVisible"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "Llama.cpp",
+        "order": 1,
+        "properties": {
+          "dorsal.llamaCpp.baseUrl": {
+            "type": "string",
+            "default": "http://127.0.0.1:8080",
+            "order": 1,
+            "description": "Base URL of the llama.cpp server (llama-server)."
+          },
+          "dorsal.llamaCpp.model": {
+            "type": "string",
+            "default": "",
+            "order": 2,
+            "description": "Optional model name to request from the llama.cpp server, for multi-model setups (e.g. llama-swap). Leave empty to use the server's default/loaded model."
+          },
+          "dorsal.llamaCpp.apiKey": {
+            "type": "string",
+            "default": "",
+            "order": 3,
+            "description": "Optional API key for the llama.cpp server, sent as a Bearer token."
+          }
+        }
+      },
+      {
+        "title": "Completions",
+        "order": 2,
+        "properties": {
+          "dorsal.completions.enabled": {
+            "type": "boolean",
+            "default": true,
+            "order": 1,
+            "description": "Enable inline tab completions."
+          },
+          "dorsal.completions.debounceMs": {
+            "type": "number",
+            "default": 250,
+            "order": 2,
+            "description": "Delay in milliseconds before requesting an inline completion after typing stops."
+          },
+          "dorsal.completions.maxTokens": {
+            "type": "number",
+            "default": 128,
+            "order": 3,
+            "description": "Maximum tokens to request for an inline completion."
+          }
+        }
+      },
+      {
+        "title": "Next Edit Suggestions",
+        "order": 3,
+        "properties": {
+          "dorsal.nextEditSuggestions.enabled": {
+            "type": "boolean",
+            "default": true,
+            "order": 1,
+            "description": "Enable next-edit suggestions."
+          },
+          "dorsal.nextEditSuggestions.autoTrigger": {
+            "type": "boolean",
+            "default": true,
+            "order": 2,
+            "description": "Automatically suggest next edits after a short idle period following a change."
+          },
+          "dorsal.nextEditSuggestions.maxTokens": {
+            "type": "number",
+            "default": 512,
+            "order": 3,
+            "description": "Maximum tokens to request for a next-edit suggestion."
+          }
+        }
+      },
+      {
+        "title": "Inline Edit",
+        "order": 4,
+        "properties": {
+          "dorsal.inlineEdit.maxTokens": {
+            "type": "number",
+            "default": 1024,
+            "order": 1,
+            "description": "Maximum tokens to request for an inline quick edit."
+          }
+        }
       }
     ]
   },
