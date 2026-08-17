@@ -228,9 +228,16 @@ export function parseSuggestion(response: string, document: vscode.TextDocument)
 		return undefined;
 	}
 
-	return { range, replacementText: match[3] };
+	return { range, replacementText: normalizeLineEndings(match[3], document.eol) };
 }
 
 function normalizeWhitespace(text: string): string {
 	return text.replace(/\s+/g, ' ').trim();
+}
+
+// LLM output is plain LF; on a CRLF document every line would otherwise mismatch by its
+// trailing \r alone, which breaks the line-up-based diff rendering far past the actual edit.
+function normalizeLineEndings(text: string, eol: vscode.EndOfLine): string {
+	const lf = text.replace(/\r\n/g, '\n');
+	return eol === vscode.EndOfLine.CRLF ? lf.replace(/\n/g, '\r\n') : lf;
 }
