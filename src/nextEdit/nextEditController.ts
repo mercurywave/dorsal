@@ -88,6 +88,10 @@ export class NextEditController implements vscode.Disposable {
 		if (!suggestion || editor !== vscode.window.activeTextEditor) {
 			return;
 		}
+		// A suggestion on the line just edited would overlap tab-completion and isn't useful.
+		if (suggestion.range.start.line <= changedLine && changedLine <= suggestion.range.end.line) {
+			return;
+		}
 		this.current = { editor, suggestion };
 		renderSuggestion(editor, suggestion.range, suggestion.replacementText);
 		this.codeLensProvider.show(editor.document.uri, suggestion.range, {
