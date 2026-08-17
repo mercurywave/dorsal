@@ -21,7 +21,7 @@ export class LlmService {
 	}
 
 	private static buildProvider(config: DorsalConfig, log: (message: string) => void): LlmProvider {
-		return new LlamaCppProvider(config.llamaCpp.baseUrl, config.llamaCpp.apiKey, config.llamaCpp.model, log);
+		return new LlamaCppProvider(config.llmServer.baseUrl, config.llmServer.apiKey, config.llmServer.model, log);
 	}
 
 	reload(config: DorsalConfig): void {

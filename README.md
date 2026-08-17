@@ -26,20 +26,22 @@ Dorsal talks to it over its REST API - no other setup is required.
 
 All settings are under the `dorsal.*` prefix:
 
-* `dorsal.llamaCpp.baseUrl` - llama.cpp server URL (default `http://127.0.0.1:8080`).
-* `dorsal.llamaCpp.model` - optional model name to request, for multi-model setups (e.g. llama-swap).
-* `dorsal.llamaCpp.apiKey` - optional bearer token for the llama.cpp server.
+* `dorsal.llmServer.baseUrl` - LLM server URL (default `http://127.0.0.1:8080`). Works best with llama.cpp's `llama-server`.
+* `dorsal.llmServer.model` - optional model name to request, for multi-model setups (e.g. llama-swap).
+* `dorsal.llmServer.apiKey` - optional bearer token for the LLM server.
 
-`dorsal.llamaCpp.model` is the default model for all features. Each feature can override it with its
-model setting; leave an override empty to use the default:
+`dorsal.llmServer.model` is the default model for all features. Each feature can also override the
+base URL, API key, and model; leave an override empty to use the default:
 
 * `dorsal.completions.enabled` / `dorsal.completions.useInfillApi` / `dorsal.completions.debounceMs` / `dorsal.completions.maxTokens` /
-  `dorsal.completions.model` -
+  `dorsal.completions.model` / `dorsal.completions.baseUrl` / `dorsal.completions.apiKey` -
   tab completion behavior.
 * `dorsal.nextEditSuggestions.enabled` / `dorsal.nextEditSuggestions.autoTrigger` /
   `dorsal.nextEditSuggestions.useInfillApi` / `dorsal.nextEditSuggestions.maxTokens` /
-  `dorsal.nextEditSuggestions.model` - next edit suggestion behavior.
-* `dorsal.inlineEdit.maxTokens` / `dorsal.inlineEdit.model` - response size and model for `Ctrl+I` inline edits.
+  `dorsal.nextEditSuggestions.model` / `dorsal.nextEditSuggestions.baseUrl` / `dorsal.nextEditSuggestions.apiKey` -
+  next edit suggestion behavior.
+* `dorsal.inlineEdit.maxTokens` / `dorsal.inlineEdit.model` / `dorsal.inlineEdit.baseUrl` / `dorsal.inlineEdit.apiKey` -
+  response size, model, and server overrides for `Ctrl+I` inline edits.
 
 
 ## Commands & Keybindings

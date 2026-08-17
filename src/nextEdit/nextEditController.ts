@@ -112,6 +112,8 @@ export class NextEditController implements vscode.Disposable {
 			config.nextEditSuggestions.model,
 			config.nextEditSuggestions.thinkingBudget,
 			recentEdit,
+			config.nextEditSuggestions.baseUrl,
+			config.nextEditSuggestions.apiKey,
 		);
 		if (!suggestion
 			|| requestId !== this.requestSequence

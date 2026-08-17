@@ -3,6 +3,8 @@ export interface InfillOptions {
 	model?: string;
 	stop?: string[];
 	temperature?: number;
+	baseUrl?: string;
+	apiKey?: string;
 }
 
 export interface ChatMessage {
@@ -17,6 +19,8 @@ export interface ChatOptions {
 	temperature?: number;
 	// Caps reasoning/thinking tokens for models that support extended thinking.
 	thinkingBudget?: number;
+	baseUrl?: string;
+	apiKey?: string;
 }
 
 export interface LlmProvider {

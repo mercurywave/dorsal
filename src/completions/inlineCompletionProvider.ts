@@ -44,13 +44,15 @@ export class DorsalInlineCompletionProvider implements vscode.InlineCompletionIt
 					maxTokens: config.completions.maxTokens,
 					model: config.completions.model,
 					stop: ['\n\n'],
+					baseUrl: config.completions.baseUrl,
+					apiKey: config.completions.apiKey,
 				}, 'completions')
 				: await this.llmService.chat(
 					[
 						{ role: 'system', content: CHAT_SYSTEM_PROMPT },
 						{ role: 'user', content: `Code before cursor:\n${prefix}\n\nCode after cursor:\n${suffix}\n\nText to insert:` },
 					],
-					{ maxTokens: config.completions.maxTokens, model: config.completions.model, stop: ['\n\n'] },
+					{ maxTokens: config.completions.maxTokens, model: config.completions.model, stop: ['\n\n'], baseUrl: config.completions.baseUrl, apiKey: config.completions.apiKey },
 					'completions',
 				);
 		} catch (err) {

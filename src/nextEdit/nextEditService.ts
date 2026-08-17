@@ -44,6 +44,8 @@ export class NextEditService {
 		model: string,
 		thinkingBudget: number,
 		recentEdit?: RecentEditContext,
+		baseUrl?: string,
+		apiKey?: string,
 	): Promise<NextEditSuggestion | undefined> {
 		const numberedLines: string[] = [];
 		for (let i = 0; i < document.lineCount; i++) {
@@ -61,7 +63,7 @@ export class NextEditService {
 					{ role: 'system', content: SYSTEM_PROMPT },
 					{ role: 'user', content: userPrompt },
 				],
-				{ maxTokens, model, thinkingBudget },
+				{ maxTokens, model, thinkingBudget, baseUrl, apiKey },
 				'nextEdit',
 			);
 		} catch (err) {

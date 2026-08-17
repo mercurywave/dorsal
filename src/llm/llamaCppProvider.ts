@@ -19,18 +19,20 @@ export class LlamaCppProvider implements LlmProvider {
 		private readonly log: (message: string) => void,
 	) {}
 
-	private headers(): Record<string, string> {
+	private headers(apiKey: string): Record<string, string> {
 		const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-		if (this.apiKey) {
-			headers['Authorization'] = `Bearer ${this.apiKey}`;
+		if (apiKey) {
+			headers['Authorization'] = `Bearer ${apiKey}`;
 		}
 		return headers;
 	}
 
 	async infill(prefix: string, suffix: string, options: InfillOptions): Promise<string> {
-		const res = await fetchJson(`${this.baseUrl}/infill`, {
+		const baseUrl = options.baseUrl || this.baseUrl;
+		const apiKey = options.apiKey || this.apiKey;
+		const res = await fetchJson(`${baseUrl}/infill`, {
 			method: 'POST',
-			headers: this.headers(),
+			headers: this.headers(apiKey),
 			body: JSON.stringify({
 				input_prefix: prefix,
 				input_suffix: suffix,
@@ -48,9 +50,11 @@ export class LlamaCppProvider implements LlmProvider {
 	}
 
 	async chat(messages: ChatMessage[], options: ChatOptions): Promise<string> {
-		const res = await fetchJson(`${this.baseUrl}/v1/chat/completions`, {
+		const baseUrl = options.baseUrl || this.baseUrl;
+		const apiKey = options.apiKey || this.apiKey;
+		const res = await fetchJson(`${baseUrl}/v1/chat/completions`, {
 			method: 'POST',
-			headers: this.headers(),
+			headers: this.headers(apiKey),
 			body: JSON.stringify({
 				messages,
 				max_tokens: options.maxTokens,

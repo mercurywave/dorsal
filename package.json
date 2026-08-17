@@ -73,26 +73,26 @@
     ],
     "configuration": [
       {
-        "title": "Llama.cpp",
+        "title": "LLM Server",
         "order": 1,
         "properties": {
-          "dorsal.llamaCpp.baseUrl": {
+          "dorsal.llmServer.baseUrl": {
             "type": "string",
             "default": "http://127.0.0.1:8080",
             "order": 1,
-            "description": "Base URL of the llama.cpp server (llama-server)."
+            "description": "Base URL of the OpenAI-compatible LLM server. Works best with llama.cpp's llama-server."
           },
-          "dorsal.llamaCpp.model": {
+          "dorsal.llmServer.model": {
             "type": "string",
             "default": "",
             "order": 2,
-            "description": "Optional model name to request from the llama.cpp server, for multi-model setups (e.g. llama-swap). Leave empty to use the server's default/loaded model."
+            "description": "Optional model name to request from the server, for multi-model setups (e.g. llama-swap). Leave empty to use the server's default/loaded model."
           },
-          "dorsal.llamaCpp.apiKey": {
+          "dorsal.llmServer.apiKey": {
             "type": "string",
             "default": "",
             "order": 3,
-            "description": "Optional API key for the llama.cpp server, sent as a Bearer token."
+            "description": "Optional API key for the LLM server, sent as a Bearer token."
           }
         }
       },
@@ -129,6 +129,18 @@
             "default": "",
             "order": 5,
             "description": "Optional model override for inline completions. Leave empty to use the default model."
+          },
+          "dorsal.completions.baseUrl": {
+            "type": "string",
+            "default": "",
+            "order": 6,
+            "description": "Optional server base URL override for inline completions. Leave empty to use the default LLM server."
+          },
+          "dorsal.completions.apiKey": {
+            "type": "string",
+            "default": "",
+            "order": 7,
+            "description": "Optional API key override for inline completions. Leave empty to use the default API key."
           }
         }
       },
@@ -165,6 +177,18 @@
             "default": 200,
             "order": 5,
             "description": "Maximum reasoning/thinking tokens for next-edit suggestions, for models that support extended thinking."
+          },
+          "dorsal.nextEditSuggestions.baseUrl": {
+            "type": "string",
+            "default": "",
+            "order": 6,
+            "description": "Optional server base URL override for next-edit suggestions. Leave empty to use the default LLM server."
+          },
+          "dorsal.nextEditSuggestions.apiKey": {
+            "type": "string",
+            "default": "",
+            "order": 7,
+            "description": "Optional API key override for next-edit suggestions. Leave empty to use the default API key."
           }
         }
       },
@@ -189,6 +213,18 @@
             "default": 200,
             "order": 3,
             "description": "Maximum reasoning/thinking tokens for inline edits, for models that support extended thinking."
+          },
+          "dorsal.inlineEdit.baseUrl": {
+            "type": "string",
+            "default": "",
+            "order": 4,
+            "description": "Optional server base URL override for inline edits. Leave empty to use the default LLM server."
+          },
+          "dorsal.inlineEdit.apiKey": {
+            "type": "string",
+            "default": "",
+            "order": 5,
+            "description": "Optional API key override for inline edits. Leave empty to use the default API key."
           }
         }
       }
