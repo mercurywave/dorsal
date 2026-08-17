@@ -26,7 +26,7 @@ export function readConfig(): DorsalConfig {
 			enabled: cfg.get<boolean>('nextEditSuggestions.enabled', true),
 			autoTrigger: cfg.get<boolean>('nextEditSuggestions.autoTrigger', true),
 			useInfillApi: cfg.get<boolean>('nextEditSuggestions.useInfillApi', true),
-			maxTokens: cfg.get<number>('nextEditSuggestions.maxTokens', 512),
+				maxTokens: cfg.get<number>('nextEditSuggestions.maxTokens', 4096),
 			model: cfg.get<string>('nextEditSuggestions.model', ''),
 		},
 		inlineEdit: {

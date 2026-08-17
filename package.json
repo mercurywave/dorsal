@@ -156,7 +156,7 @@
       },
           "dorsal.nextEditSuggestions.maxTokens": {
             "type": "number",
-            "default": 512,
+            "default": 4096,
             "order": 4,
             "description": "Maximum tokens to request for a next-edit suggestion."
           },
