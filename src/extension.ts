@@ -8,10 +8,11 @@ import { NextEditController } from './nextEdit/nextEditController';
 import { DorsalStatusBar } from './statusBar';
 
 export function activate(context: vscode.ExtensionContext) {
-	const output = vscode.window.createOutputChannel('Dorsal');
-	const log = (message: string) => output.appendLine(message);
+	const output = vscode.window.createOutputChannel('Dorsal', { log: true });
+	const log = (message: string) => output.error(message);
+	const verboseLog = (message: string) => output.debug(message);
 
-	const llmService = new LlmService(readConfig(), log);
+	const llmService = new LlmService(readConfig(), log, verboseLog);
 	const statusBar = new DorsalStatusBar(llmService, output);
 	const completionProvider = new DorsalInlineCompletionProvider(llmService, log);
 	const codeLensProvider = new SuggestionCodeLensProvider();

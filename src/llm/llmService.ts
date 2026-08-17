@@ -13,10 +13,15 @@ export interface WorkflowStatusEvent {
 
 export class LlmService {
 	private provider: LlmProvider;
+	private chatRequestId = 0;
 	private readonly statusEmitter = new vscode.EventEmitter<WorkflowStatusEvent>();
 	readonly onDidChangeWorkflowStatus = this.statusEmitter.event;
 
-	constructor(config: DorsalConfig, private readonly log: (message: string) => void) {
+	constructor(
+		config: DorsalConfig,
+		private readonly log: (message: string) => void,
+		private readonly verboseLog: (message: string) => void,
+	) {
 		this.provider = LlmService.buildProvider(config, log);
 	}
 
@@ -49,8 +54,15 @@ export class LlmService {
 	}
 
 	async chat(messages: ChatMessage[], options: ChatOptions, workflow: Workflow): Promise<string> {
+		const requestId = ++this.chatRequestId;
+		if (workflow !== 'completions') {
+			this.verboseLog(`[chat ${requestId}] ${workflow} request messages:\n${JSON.stringify(messages, null, 2)}`);
+		}
 		try {
 			const result = await this.provider.chat(messages, options);
+			if (workflow !== 'completions') {
+				this.verboseLog(`[chat ${requestId}] ${workflow} response:\n${result}`);
+			}
 			this.statusEmitter.fire({ workflow, status: 'success' });
 			return result;
 		} catch (err) {
