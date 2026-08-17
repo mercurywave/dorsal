@@ -56,9 +56,10 @@ export class LlamaCppProvider implements LlmProvider {
 				max_tokens: options.maxTokens,
 				temperature: options.temperature ?? 0.2,
 				stop: options.stop,
+				...(options.thinkingBudget !== undefined ? { reasoning_budget: options.thinkingBudget, thinking_budget_tokens: options.thinkingBudget } : {}),
 				...((options.model || this.model) ? { model: options.model || this.model } : {}),
 			}),
-		}, 30_000);
+		}, 60_000);
 		if (!res.ok) {
 			throw new Error(`llama.cpp chat completion failed: ${res.status} ${res.statusText}: ${await res.text()}`);
 		}

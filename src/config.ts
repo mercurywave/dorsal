@@ -3,8 +3,8 @@ import * as vscode from 'vscode';
 export interface DorsalConfig {
 	llamaCpp: { baseUrl: string; apiKey: string; model: string };
 	completions: { enabled: boolean; useInfillApi: boolean; maxTokens: number; debounceMs: number; model: string };
-	nextEditSuggestions: { enabled: boolean; autoTrigger: boolean; useInfillApi: boolean; maxTokens: number; model: string };
-	inlineEdit: { maxTokens: number; model: string };
+	nextEditSuggestions: { enabled: boolean; autoTrigger: boolean; maxTokens: number; model: string; thinkingBudget: number };
+	inlineEdit: { maxTokens: number; model: string; thinkingBudget: number };
 }
 
 export function readConfig(): DorsalConfig {
@@ -25,13 +25,14 @@ export function readConfig(): DorsalConfig {
 		nextEditSuggestions: {
 			enabled: cfg.get<boolean>('nextEditSuggestions.enabled', true),
 			autoTrigger: cfg.get<boolean>('nextEditSuggestions.autoTrigger', true),
-			useInfillApi: cfg.get<boolean>('nextEditSuggestions.useInfillApi', true),
 				maxTokens: cfg.get<number>('nextEditSuggestions.maxTokens', 4096),
 			model: cfg.get<string>('nextEditSuggestions.model', ''),
+			thinkingBudget: cfg.get<number>('nextEditSuggestions.thinkingBudget', 200),
 		},
 		inlineEdit: {
 			maxTokens: cfg.get<number>('inlineEdit.maxTokens', 1024),
 			model: cfg.get<string>('inlineEdit.model', ''),
+			thinkingBudget: cfg.get<number>('inlineEdit.thinkingBudget', 200),
 		},
 	};
 }

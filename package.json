@@ -148,23 +148,23 @@
             "order": 2,
             "description": "Automatically suggest next edits after a short idle period following a change."
           },
-      "dorsal.nextEditSuggestions.useInfillApi": {
-      "type": "boolean",
-      "default": true,
-      "order": 3,
-      "description": "Use llama.cpp's /infill API for next-edit suggestions. Disable for OpenAI-compatible chat completions."
-      },
           "dorsal.nextEditSuggestions.maxTokens": {
             "type": "number",
             "default": 4096,
-            "order": 4,
+            "order": 3,
             "description": "Maximum tokens to request for a next-edit suggestion."
           },
           "dorsal.nextEditSuggestions.model": {
             "type": "string",
             "default": "",
-            "order": 5,
+            "order": 4,
             "description": "Optional model override for next-edit suggestions. Leave empty to use the default model."
+          },
+          "dorsal.nextEditSuggestions.thinkingBudget": {
+            "type": "number",
+            "default": 200,
+            "order": 5,
+            "description": "Maximum reasoning/thinking tokens for next-edit suggestions, for models that support extended thinking."
           }
         }
       },
@@ -183,6 +183,12 @@
             "default": "",
             "order": 2,
             "description": "Optional model override for inline edits. Leave empty to use the default model."
+          },
+          "dorsal.inlineEdit.thinkingBudget": {
+            "type": "number",
+            "default": 200,
+            "order": 3,
+            "description": "Maximum reasoning/thinking tokens for inline edits, for models that support extended thinking."
           }
         }
       }
@@ -206,8 +212,11 @@
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.0.0"
   },
+  "dependencies": {
+    "diff": "^8.0.4"
+  },
   "overrides": {
-    "diff": "^8.0.4",
+    "diff": "$diff",
     "serialize-javascript": "^7.0.6"
   }
 }

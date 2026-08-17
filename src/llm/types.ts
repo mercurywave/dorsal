@@ -15,6 +15,8 @@ export interface ChatOptions {
 	model?: string;
 	stop?: string[];
 	temperature?: number;
+	// Caps reasoning/thinking tokens for models that support extended thinking.
+	thinkingBudget?: number;
 }
 
 export interface LlmProvider {

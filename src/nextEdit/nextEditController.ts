@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { readConfig } from '../config';
 import { LlmService } from '../llm/llmService';
 import { clearSuggestionDecorations, renderSuggestion, SuggestionCodeLensProvider } from './decorationRenderer';
-import { NextEditService, NextEditSuggestion } from './nextEditService';
+import { buildRecentEditContext, NextEditService, NextEditSuggestion, RecentEditContext } from './nextEditService';
 
 const AUTO_TRIGGER_IDLE_MS = 1500;
 const CONTEXT_KEY = 'dorsalNextEditSuggestionVisible';
@@ -12,11 +12,19 @@ interface ActiveSuggestion {
 	suggestion: NextEditSuggestion;
 }
 
+interface PendingEditBurst {
+	editor: vscode.TextEditor;
+	baselineText: string;
+}
+
 export class NextEditController implements vscode.Disposable {
 	private readonly service: NextEditService;
 	private readonly disposables: vscode.Disposable[] = [];
+	private readonly documentSnapshots = new Map<string, string>();
 	private current: ActiveSuggestion | undefined;
 	private autoTriggerTimer: ReturnType<typeof setTimeout> | undefined;
+	private pendingEditBurst: PendingEditBurst | undefined;
+	private requestSequence = 0;
 
 	constructor(
 		llmService: LlmService,
@@ -24,10 +32,18 @@ export class NextEditController implements vscode.Disposable {
 		private readonly codeLensProvider: SuggestionCodeLensProvider,
 	) {
 		this.service = new NextEditService(llmService, log);
+		for (const document of vscode.workspace.textDocuments) {
+			this.documentSnapshots.set(document.uri.toString(), document.getText());
+		}
 
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => this.onDidChangeTextDocument(event)),
-			vscode.window.onDidChangeActiveTextEditor(() => this.clearCurrentSuggestion()),
+			vscode.workspace.onDidOpenTextDocument((document) => this.documentSnapshots.set(document.uri.toString(), document.getText())),
+			vscode.workspace.onDidCloseTextDocument((document) => this.documentSnapshots.delete(document.uri.toString())),
+			vscode.window.onDidChangeActiveTextEditor(() => {
+				this.resetEditBurst();
+				this.clearCurrentSuggestion();
+			}),
 			vscode.commands.registerCommand('dorsal.suggestNextEdit', () => this.triggerManual()),
 			vscode.commands.registerCommand('dorsal.acceptNextEdit', () => this.accept()),
 			vscode.commands.registerCommand('dorsal.dismissNextEditSuggestion', () => this.clearCurrentSuggestion()),
@@ -36,22 +52,24 @@ export class NextEditController implements vscode.Disposable {
 
 	private onDidChangeTextDocument(event: vscode.TextDocumentChangeEvent): void {
 		this.clearCurrentSuggestion();
+		this.requestSequence++;
 
 		if (this.autoTriggerTimer) {
 			clearTimeout(this.autoTriggerTimer);
 			this.autoTriggerTimer = undefined;
 		}
 
+		const documentKey = event.document.uri.toString();
+		const previousText = this.documentSnapshots.get(documentKey) ?? event.document.getText();
+		this.documentSnapshots.set(documentKey, event.document.getText());
+
 		const config = readConfig();
 		if (!config.nextEditSuggestions.enabled || !config.nextEditSuggestions.autoTrigger || event.contentChanges.length === 0) {
 			return;
 		}
-		// Undo/redo and pure deletions aren't the user "typing"; only fresh input should
-		// trigger a new suggestion.
+		// Undo and redo are history navigation, not new developer intent.
 		if (event.reason === vscode.TextDocumentChangeReason.Undo || event.reason === vscode.TextDocumentChangeReason.Redo) {
-			return;
-		}
-		if (!event.contentChanges.some((change) => change.text.length > 0)) {
+			this.pendingEditBurst = undefined;
 			return;
 		}
 		const editor = vscode.window.activeTextEditor;
@@ -59,9 +77,17 @@ export class NextEditController implements vscode.Disposable {
 			return;
 		}
 
-		const changedLine = event.contentChanges[0].range.start.line;
+		if (!this.pendingEditBurst || this.pendingEditBurst.editor !== editor) {
+			this.pendingEditBurst = { editor, baselineText: previousText };
+		}
+		const baselineText = this.pendingEditBurst.baselineText;
 		this.autoTriggerTimer = setTimeout(() => {
-			void this.requestSuggestion(editor, changedLine);
+			this.autoTriggerTimer = undefined;
+			this.pendingEditBurst = undefined;
+			const recentEdit = buildRecentEditContext(baselineText, editor.document.getText());
+			if (recentEdit) {
+				void this.requestSuggestion(editor, recentEdit);
+			}
 		}, AUTO_TRIGGER_IDLE_MS);
 	}
 
@@ -70,26 +96,32 @@ export class NextEditController implements vscode.Disposable {
 		if (!editor) {
 			return;
 		}
-		void this.requestSuggestion(editor, editor.selection.active.line);
+		void this.requestSuggestion(editor);
 	}
 
-	private async requestSuggestion(editor: vscode.TextEditor, changedLine: number): Promise<void> {
+	private async requestSuggestion(editor: vscode.TextEditor, recentEdit?: RecentEditContext): Promise<void> {
 		const config = readConfig();
 		if (!config.nextEditSuggestions.enabled) {
 			return;
 		}
+		const requestId = ++this.requestSequence;
+		const documentVersion = editor.document.version;
 		const suggestion = await this.service.suggest(
 			editor.document,
-			changedLine,
 			config.nextEditSuggestions.maxTokens,
 			config.nextEditSuggestions.model,
-			config.nextEditSuggestions.useInfillApi,
+			config.nextEditSuggestions.thinkingBudget,
+			recentEdit,
 		);
-		if (!suggestion || editor !== vscode.window.activeTextEditor) {
+		if (!suggestion
+			|| requestId !== this.requestSequence
+			|| editor.document.version !== documentVersion
+			|| editor !== vscode.window.activeTextEditor) {
 			return;
 		}
-		// A suggestion on the line just edited would overlap tab-completion and isn't useful.
-		if (suggestion.range.start.line <= changedLine && changedLine <= suggestion.range.end.line) {
+		// A suggestion overlapping the recent edit would compete with the user's own change.
+		if (recentEdit?.changedLineRanges.some((changedRange) =>
+			suggestion.range.start.line <= changedRange.end && changedRange.start <= suggestion.range.end.line)) {
 			return;
 		}
 		this.current = { editor, suggestion };
@@ -126,10 +158,17 @@ export class NextEditController implements vscode.Disposable {
 		void vscode.commands.executeCommand('setContext', CONTEXT_KEY, false);
 	}
 
-	dispose(): void {
+	private resetEditBurst(): void {
 		if (this.autoTriggerTimer) {
 			clearTimeout(this.autoTriggerTimer);
+			this.autoTriggerTimer = undefined;
 		}
+		this.pendingEditBurst = undefined;
+		this.requestSequence++;
+	}
+
+	dispose(): void {
+		this.resetEditBurst();
 		this.clearCurrentSuggestion();
 		this.disposables.forEach((d) => d.dispose());
 	}
