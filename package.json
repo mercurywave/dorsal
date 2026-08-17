@@ -141,6 +141,12 @@
             "default": "",
             "order": 7,
             "description": "Optional API key override for inline completions. Leave empty to use the default API key."
+          },
+          "dorsal.completions.maxLines": {
+            "type": "number",
+            "default": 2,
+            "order": 8,
+            "description": "Maximum number of lines to suggest for inline tab completion. 1 means only the rest of the current line; 2 includes one additional line, and so on."
           }
         }
       },

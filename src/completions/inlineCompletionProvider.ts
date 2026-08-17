@@ -69,7 +69,11 @@ export class DorsalInlineCompletionProvider implements vscode.InlineCompletionIt
 			return undefined;
 		}
 
-		const item = new vscode.InlineCompletionItem(trimmed, new vscode.Range(position, position));
+		const truncated = truncateToLines(trimmed, config.completions.maxLines);
+		if (!truncated) {
+			return undefined;
+		}
+		const item = new vscode.InlineCompletionItem(truncated, new vscode.Range(position, position));
 		return new vscode.InlineCompletionList([item]);
 	}
 
@@ -104,3 +108,11 @@ function trimOverlapWithSuffix(completion: string, suffix: string): string {
 	}
 	return completion;
 }
+
+function truncateToLines(text: string, maxLines: number): string {
+	const lines = text.split('\n');
+	if (lines.length <= maxLines) {
+		return text;
+	}
+	return lines.slice(0, maxLines).join('\n');
+}
