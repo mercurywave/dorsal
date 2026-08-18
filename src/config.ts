@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 export interface DorsalConfig {
 	llmServer: { baseUrl: string; apiKey: string; model: string };
-	completions: { enabled: boolean; useInfillApi: boolean; maxTokens: number; debounceMs: number; maxLines: number; model: string; baseUrl: string; apiKey: string };
+	completions: { triggerMode: 'automatic' | 'manual' | 'off'; useInfillApi: boolean; maxTokens: number; debounceMs: number; maxLines: number; model: string; baseUrl: string; apiKey: string };
 	nextEditSuggestions: { enabled: boolean; autoTrigger: boolean; maxTokens: number; model: string; thinkingBudget: number; baseUrl: string; apiKey: string };
 	inlineEdit: { maxTokens: number; model: string; thinkingBudget: number; baseUrl: string; apiKey: string };
 }
@@ -16,7 +16,7 @@ export function readConfig(): DorsalConfig {
 			model: cfg.get<string>('llmServer.model', ''),
 		},
 		completions: {
-			enabled: cfg.get<boolean>('completions.enabled', true),
+			triggerMode: cfg.get<'automatic' | 'manual' | 'off'>('completions.triggerMode', 'automatic'),
 			useInfillApi: cfg.get<boolean>('completions.useInfillApi', true),
 			maxLines: cfg.get<number>('completions.maxLines', 2),
 			maxTokens: cfg.get<number>('completions.maxTokens', 128),

@@ -61,8 +61,14 @@ export class DorsalStatusBar implements vscode.Disposable {
 
 	private buildMenuItems(): DorsalMenuItem[] {
 		const cfg = vscode.workspace.getConfiguration('dorsal');
-		const completionsEnabled = cfg.get<boolean>('completions.enabled', true);
+		const completionTriggerMode = cfg.get<'automatic' | 'manual' | 'off'>('completions.triggerMode', 'automatic');
+		const completionLabel = completionTriggerMode === 'automatic' ? 'Auto'
+			: completionTriggerMode === 'manual' ? 'Manual' : 'Off';
+		const completionIcon = completionTriggerMode === 'automatic' ? 'zap'
+			: completionTriggerMode === 'manual' ? 'debug-pause' : 'circle-slash';
+		const nextCompletionTriggerMode = completionTriggerMode === 'automatic' ? 'manual' : 'automatic';
 		const autoTriggerEnabled = cfg.get<boolean>('nextEditSuggestions.autoTrigger', true);
+		const nextEditIcon = autoTriggerEnabled ? 'zap' : 'debug-pause';
 
 		return [
 			{
@@ -71,14 +77,14 @@ export class DorsalStatusBar implements vscode.Disposable {
 				action: () => vscode.commands.executeCommand('workbench.action.openSettings', 'dorsal.'),
 			},
 			{
-				label: `$(${completionsEnabled ? 'check' : 'circle-slash'}) Completions: ${completionsEnabled ? 'On' : 'Off'}`,
-				description: 'Toggle inline tab completions',
-				action: () => this.toggleSetting('completions.enabled', completionsEnabled),
+				label: `$(${completionIcon}) Completions: ${completionLabel}`,
+				description: `Switch to ${nextCompletionTriggerMode} inline completions`,
+				action: () => this.updateSetting('completions.triggerMode', nextCompletionTriggerMode),
 			},
 			{
-				label: `$(${autoTriggerEnabled ? 'check' : 'circle-slash'}) Auto-Trigger Next Edit: ${autoTriggerEnabled ? 'On' : 'Off'}`,
-				description: 'Toggle automatic next-edit suggestions',
-				action: () => this.toggleSetting('nextEditSuggestions.autoTrigger', autoTriggerEnabled),
+				label: `$(${nextEditIcon}) Next Edits: ${autoTriggerEnabled ? 'Auto' : 'Manual'}`,
+				description: `Switch to ${autoTriggerEnabled ? 'manual' : 'automatic'} next-edit suggestions`,
+				action: () => this.updateSetting('nextEditSuggestions.autoTrigger', !autoTriggerEnabled),
 			},
 			{
 				label: '$(output) Show Logs',
@@ -88,8 +94,8 @@ export class DorsalStatusBar implements vscode.Disposable {
 		];
 	}
 
-	private async toggleSetting(key: string, currentValue: boolean): Promise<void> {
-		await vscode.workspace.getConfiguration('dorsal').update(key, !currentValue, vscode.ConfigurationTarget.Global);
+	private async updateSetting(key: string, value: boolean | 'automatic' | 'manual'): Promise<void> {
+		await vscode.workspace.getConfiguration('dorsal').update(key, value, vscode.ConfigurationTarget.Global);
 	}
 
 	dispose(): void {

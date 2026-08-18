@@ -100,11 +100,16 @@
         "title": "Completions",
         "order": 2,
         "properties": {
-          "dorsal.completions.enabled": {
-            "type": "boolean",
-            "default": true,
+          "dorsal.completions.triggerMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual",
+              "off"
+            ],
+            "default": "automatic",
             "order": 1,
-            "description": "Enable inline tab completions."
+            "description": "When to offer inline completions. Manual mode responds only to VS Code's Trigger Inline Suggestion action."
           },
       "dorsal.completions.useInfillApi": {
       "type": "boolean",

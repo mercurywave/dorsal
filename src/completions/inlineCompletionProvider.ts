@@ -20,15 +20,17 @@ export class DorsalInlineCompletionProvider implements vscode.InlineCompletionIt
 	async provideInlineCompletionItems(
 		document: vscode.TextDocument,
 		position: vscode.Position,
-		_context: vscode.InlineCompletionContext,
+		context: vscode.InlineCompletionContext,
 		token: vscode.CancellationToken,
 	): Promise<vscode.InlineCompletionList | undefined> {
 		const config = readConfig();
-		if (!config.completions.enabled) {
+		if (config.completions.triggerMode === 'off'
+			|| (config.completions.triggerMode === 'manual' && context.triggerKind !== vscode.InlineCompletionTriggerKind.Invoke)) {
 			return undefined;
 		}
 
-		const debounced = await this.debounce(config.completions.debounceMs, token);
+		const debounced = context.triggerKind === vscode.InlineCompletionTriggerKind.Invoke
+			|| await this.debounce(config.completions.debounceMs, token);
 		if (!debounced || token.isCancellationRequested) {
 			return undefined;
 		}
@@ -115,4 +117,4 @@ function truncateToLines(text: string, maxLines: number): string {
 		return text;
 	}
 	return lines.slice(0, maxLines).join('\n');
-}
+}
