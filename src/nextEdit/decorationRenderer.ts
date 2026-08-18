@@ -34,6 +34,27 @@ const addedInlineDecorationType = vscode.window.createTextEditorDecorationType({
 	},
 });
 
+// Marks the suggestion on the scrollbar overview ruler so it stays discoverable even
+// while scrolled away; clicking the ruler mark natively jumps VS Code to that position.
+const suggestionMarkerDecorationType = vscode.window.createTextEditorDecorationType({
+	isWholeLine: true,
+	overviewRulerColor: new vscode.ThemeColor('statusBarItem.warningBackground'),
+	overviewRulerLane: vscode.OverviewRulerLane.Full,
+});
+
+// Arrow shown at the top/bottom edge of the viewport pointing toward an off-screen
+// suggestion, since decorations on the suggestion's own range are invisible until scrolled to.
+// Colored (rather than plain codelens-gray text) so it draws the eye like a notification badge.
+const offscreenIndicatorDecorationType = vscode.window.createTextEditorDecorationType({
+	isWholeLine: true,
+	backgroundColor: new vscode.ThemeColor('statusBarItem.warningBackground'),
+	before: {
+		color: new vscode.ThemeColor('statusBarItem.warningForeground'),
+		fontWeight: 'bold',
+		margin: '0 1em 0 0',
+	},
+});
+
 interface DiffOp {
 	kind: 'context' | 'removed' | 'added';
 	line: string;
@@ -180,6 +201,7 @@ export function renderSuggestion(editor: vscode.TextEditor, range: vscode.Range,
 	editor.setDecorations(addedLineDecorationType, blockAddedDecorations);
 	editor.setDecorations(removedInlineDecorationType, inlineRemovedDecorations);
 	editor.setDecorations(addedInlineDecorationType, inlineAddedDecorations);
+	editor.setDecorations(suggestionMarkerDecorationType, [range]);
 }
 
 export function clearSuggestionDecorations(editor: vscode.TextEditor): void {
@@ -187,6 +209,45 @@ export function clearSuggestionDecorations(editor: vscode.TextEditor): void {
 	editor.setDecorations(addedLineDecorationType, []);
 	editor.setDecorations(removedInlineDecorationType, []);
 	editor.setDecorations(addedInlineDecorationType, []);
+	editor.setDecorations(suggestionMarkerDecorationType, []);
+	clearOffscreenIndicator(editor);
+}
+
+// Renders a "▲/▼ N lines away — Tab to jump" hint on the nearest visible edge line
+// when `suggestionLine` falls outside all of `visibleRanges`.
+export function renderOffscreenIndicator(editor: vscode.TextEditor, suggestionLine: number, visibleRanges: readonly vscode.Range[]): void {
+	if (visibleRanges.length === 0) {
+		clearOffscreenIndicator(editor);
+		return;
+	}
+	const firstVisibleLine = visibleRanges[0].start.line;
+	const lastVisibleLine = visibleRanges[visibleRanges.length - 1].end.line;
+	if (suggestionLine >= firstVisibleLine && suggestionLine <= lastVisibleLine) {
+		clearOffscreenIndicator(editor);
+		return;
+	}
+
+	const above = suggestionLine < firstVisibleLine;
+	// Inset from the true edge line: the top line is often covered by the sticky-scroll
+	// widget, and the bottom line can be partially clipped mid-scroll, hiding the decoration.
+	const editorConfig = vscode.workspace.getConfiguration('editor', editor.document.uri);
+	const topInset = editorConfig.get<boolean>('stickyScroll.enabled', true)
+		? editorConfig.get<number>('stickyScroll.maxLineCount', 5)
+		: 1;
+	const edgeLine = above
+		? Math.min(firstVisibleLine + topInset, lastVisibleLine)
+		: Math.max(lastVisibleLine - 1, firstVisibleLine);
+	const distance = above ? firstVisibleLine - suggestionLine : suggestionLine - lastVisibleLine;
+	const arrow = above ? '▲' : '▼';
+	const plural = distance === 1 ? '' : 's';
+	editor.setDecorations(offscreenIndicatorDecorationType, [{
+		range: editor.document.lineAt(Math.min(Math.max(edgeLine, 0), editor.document.lineCount - 1)).range,
+		renderOptions: { before: { contentText: `${arrow} Dorsal suggestion ${distance} line${plural} ${above ? 'above' : 'below'} — Tab to jump` } },
+	}]);
+}
+
+export function clearOffscreenIndicator(editor: vscode.TextEditor): void {
+	editor.setDecorations(offscreenIndicatorDecorationType, []);
 }
 
 interface ActiveLens {

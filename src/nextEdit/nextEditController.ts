@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readConfig } from '../config';
 import { LlmService } from '../llm/llmService';
-import { clearSuggestionDecorations, renderSuggestion, SuggestionCodeLensProvider } from './decorationRenderer';
+import { clearOffscreenIndicator, clearSuggestionDecorations, renderOffscreenIndicator, renderSuggestion, SuggestionCodeLensProvider } from './decorationRenderer';
 import { buildRecentEditContext, NextEditService, NextEditSuggestion, RecentEditContext } from './nextEditService';
 
 const AUTO_TRIGGER_IDLE_MS = 1500;
@@ -43,6 +43,11 @@ export class NextEditController implements vscode.Disposable {
 			vscode.window.onDidChangeActiveTextEditor(() => {
 				this.resetEditBurst();
 				this.clearCurrentSuggestion();
+			}),
+			vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
+				if (this.current && event.textEditor === this.current.editor) {
+					this.updateOffscreenIndicator();
+				}
 			}),
 			vscode.commands.registerCommand('dorsal.suggestNextEdit', () => this.triggerManual()),
 			vscode.commands.registerCommand('dorsal.acceptNextEdit', () => this.accept()),
@@ -134,13 +139,20 @@ export class NextEditController implements vscode.Disposable {
 			dismissCommand: 'dorsal.dismissNextEditSuggestion',
 		});
 		void vscode.commands.executeCommand('setContext', CONTEXT_KEY, true);
+		this.updateOffscreenIndicator();
 	}
 
+	// Tab first jumps to an off-screen suggestion so it's visible, and only applies it once
+	// the user can actually see what they're accepting; a second Tab then applies it.
 	private async accept(): Promise<void> {
 		if (!this.current) {
 			return;
 		}
 		const { editor, suggestion } = this.current;
+		if (!editor.visibleRanges.some((visible) => !!visible.intersection(suggestion.range))) {
+			editor.revealRange(suggestion.range, vscode.TextEditorRevealType.InCenter);
+			return;
+		}
 		try {
 			await editor.edit((editBuilder) => {
 				editBuilder.replace(suggestion.range, suggestion.replacementText);
@@ -151,9 +163,18 @@ export class NextEditController implements vscode.Disposable {
 		this.clearCurrentSuggestion();
 	}
 
+	private updateOffscreenIndicator(): void {
+		if (!this.current) {
+			return;
+		}
+		const { editor, suggestion } = this.current;
+		renderOffscreenIndicator(editor, suggestion.range.start.line, editor.visibleRanges);
+	}
+
 	private clearCurrentSuggestion(): void {
 		if (this.current) {
 			clearSuggestionDecorations(this.current.editor);
+			clearOffscreenIndicator(this.current.editor);
 		}
 		this.current = undefined;
 		this.codeLensProvider.hide();
