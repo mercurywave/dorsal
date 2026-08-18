@@ -51,6 +51,14 @@ export class NextEditController implements vscode.Disposable {
 	}
 
 	private onDidChangeTextDocument(event: vscode.TextDocumentChangeEvent): void {
+		const documentKey = event.document.uri.toString();
+		const previousText = this.documentSnapshots.get(documentKey) ?? event.document.getText();
+		this.documentSnapshots.set(documentKey, event.document.getText());
+		const editor = vscode.window.activeTextEditor;
+		if (!editor || editor.document !== event.document) {
+			return;
+		}
+
 		this.clearCurrentSuggestion();
 		this.requestSequence++;
 
@@ -59,10 +67,6 @@ export class NextEditController implements vscode.Disposable {
 			this.autoTriggerTimer = undefined;
 		}
 
-		const documentKey = event.document.uri.toString();
-		const previousText = this.documentSnapshots.get(documentKey) ?? event.document.getText();
-		this.documentSnapshots.set(documentKey, event.document.getText());
-
 		const config = readConfig();
 		if (!config.nextEditSuggestions.enabled || !config.nextEditSuggestions.autoTrigger || event.contentChanges.length === 0) {
 			return;
@@ -70,10 +74,6 @@ export class NextEditController implements vscode.Disposable {
 		// Undo and redo are history navigation, not new developer intent.
 		if (event.reason === vscode.TextDocumentChangeReason.Undo || event.reason === vscode.TextDocumentChangeReason.Redo) {
 			this.pendingEditBurst = undefined;
-			return;
-		}
-		const editor = vscode.window.activeTextEditor;
-		if (!editor || editor.document !== event.document) {
 			return;
 		}
 
