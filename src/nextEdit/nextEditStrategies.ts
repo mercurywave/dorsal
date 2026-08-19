@@ -16,6 +16,7 @@ export interface NextEditStrategyArgs {
 		thinkingBudget?: number;
 		baseUrl?: string;
 		apiKey?: string;
+		useInfillApi?: boolean;
 	};
 }
 
@@ -66,61 +67,29 @@ export const NEXT_EDIT_STRATEGIES: Record<string, NextEditStrategyDefinition> = 
 	manta: {
 		id: 'manta',
 		label: 'Manta',
-		description: 'Completion/FIM mode using the infill API with a targeted prefix/suffix replacement hole.',
-		buildRequest: ({ document, recentEdit }: NextEditStrategyArgs): NextEditStrategyRequest => {
-			const { range, prefix, suffix } = buildFIMRange(document, recentEdit);
-			return {
-				mode: 'infill',
-				targetRange: range,
-				prefix,
-				suffix,
-			};
-		},
+		description: 'Targeted FIM request that can be sent through either the infill endpoint or a completion-style prefix/suffix prompt.',
+		buildRequest: ({ document, recentEdit, options }: NextEditStrategyArgs): NextEditStrategyRequest => buildFIMRequest(document, recentEdit, options.useInfillApi ?? true, 'manta'),
 		parse: (response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined => parseFIMResponse(response, document, targetRange),
 	},
 	parrotfish: {
 		id: 'parrotfish',
 		label: 'Parrotfish',
-		description: 'Llama/FIM format using <|fim_prefix|> / <|fim_suffix|> / <|fim_middle|>.',
-		buildRequest: ({ document, recentEdit }: NextEditStrategyArgs): NextEditStrategyRequest => {
-			const { range, prefix, suffix } = buildFIMRange(document, recentEdit);
-			return {
-				mode: 'infill',
-				targetRange: range,
-				prefix: `${prefix}<|fim_prefix|>`,
-				suffix: `<|fim_suffix|>${suffix}<|fim_middle|>`,
-			};
-		},
+		description: 'Llama/FIM format using <|fim_prefix|> / <|fim_suffix|> / <|fim_middle|> markers.',
+		buildRequest: ({ document, recentEdit, options }: NextEditStrategyArgs): NextEditStrategyRequest => buildFIMRequest(document, recentEdit, options.useInfillApi ?? true, 'parrotfish'),
 		parse: (response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined => parseFIMResponse(response, document, targetRange),
 	},
 	butterflyfish: {
 		id: 'butterflyfish',
 		label: 'Butterflyfish',
-		description: 'Extended FIM format using <|fim▁begin|> / <|fim▁hole|> / <|fim▁end|>.',
-		buildRequest: ({ document, recentEdit }: NextEditStrategyArgs): NextEditStrategyRequest => {
-			const { range, prefix, suffix } = buildFIMRange(document, recentEdit);
-			return {
-				mode: 'infill',
-				targetRange: range,
-				prefix: `${prefix}<|fim▁begin|>`,
-				suffix: `<|fim▁hole|>${suffix}<|fim▁end|>`,
-			};
-		},
+		description: 'Extended FIM format using <|fim▁begin|> / <|fim▁hole|> / <|fim▁end|> markers.',
+		buildRequest: ({ document, recentEdit, options }: NextEditStrategyArgs): NextEditStrategyRequest => buildFIMRequest(document, recentEdit, options.useInfillApi ?? true, 'butterflyfish'),
 		parse: (response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined => parseFIMResponse(response, document, targetRange),
 	},
 	damselfish: {
 		id: 'damselfish',
 		label: 'Damselfish',
 		description: 'Compact FIM instructions using <PRE> / <SUF> / <MID> tags.',
-		buildRequest: ({ document, recentEdit }: NextEditStrategyArgs): NextEditStrategyRequest => {
-			const { range, prefix, suffix } = buildFIMRange(document, recentEdit);
-			return {
-				mode: 'infill',
-				targetRange: range,
-				prefix: `${prefix} <PRE> ${prefix}`,
-				suffix: ` <SUF>${suffix} <MID>`,
-			};
-		},
+		buildRequest: ({ document, recentEdit, options }: NextEditStrategyArgs): NextEditStrategyRequest => buildFIMRequest(document, recentEdit, options.useInfillApi ?? true, 'damselfish'),
 		parse: (response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined => parseFIMResponse(response, document, targetRange),
 	},
 	wrasse: {
@@ -136,16 +105,6 @@ export const NEXT_EDIT_STRATEGIES: Record<string, NextEditStrategyDefinition> = 
 		}),
 		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseJsonLikeSuggestion(response, document) ?? parseSuggestion(response, document),
 	},
-	angelfish: {
-		id: 'angelfish',
-		label: 'Angelfish',
-		description: 'OpenAI-compatible completions mode that sends a direct prompt to /v1/completions for a single XML edit response.',
-		buildRequest: ({ document, recentEdit }: NextEditStrategyArgs): NextEditStrategyRequest => ({
-			mode: 'completions',
-			prompt: `${CLOWNFISH_SYSTEM_PROMPT}\n\n${buildUserPrompt(document, recentEdit)}`,
-		}),
-		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseSuggestion(response, document),
-	},
 };
 
 export type NextEditStrategyId = keyof typeof NEXT_EDIT_STRATEGIES;
@@ -153,6 +112,36 @@ export type NextEditStrategyId = keyof typeof NEXT_EDIT_STRATEGIES;
 export function resolveNextEditStrategy(id?: string): NextEditStrategyDefinition {
 	const key = (id ?? 'clownfish') as string;
 	return NEXT_EDIT_STRATEGIES[key] ?? NEXT_EDIT_STRATEGIES.clownfish;
+}
+
+function buildFIMRequest(document: vscode.TextDocument, recentEdit: RecentEditContextLike | undefined, useInfillApi: boolean, variant: string): NextEditStrategyRequest {
+	const { range, prefix, suffix } = buildFIMRange(document, recentEdit);
+	if (useInfillApi) {
+		switch (variant) {
+			case 'parrotfish':
+				return { mode: 'infill', targetRange: range, prefix: `${prefix}<|fim_prefix|>`, suffix: `<|fim_suffix|>${suffix}<|fim_middle|>` };
+			case 'butterflyfish':
+				return { mode: 'infill', targetRange: range, prefix: `${prefix}<|fim▁begin|>`, suffix: `<|fim▁hole|>${suffix}<|fim▁end|>` };
+			case 'damselfish':
+				return { mode: 'infill', targetRange: range, prefix: `${prefix} <PRE> ${prefix}`, suffix: ` <SUF>${suffix} <MID>` };
+			default:
+				return { mode: 'infill', targetRange: range, prefix, suffix };
+		}
+	}
+
+	const prompt = (() => {
+		switch (variant) {
+			case 'parrotfish':
+				return `${prefix}<|fim_prefix|>${suffix}<|fim_middle|>`;
+			case 'butterflyfish':
+				return `${prefix}<|fim▁begin|>${suffix}<|fim▁end|>`;
+			case 'damselfish':
+				return `${prefix} <PRE> ${prefix}${suffix} <MID>`;
+			default:
+				return `${prefix}<|fim_middle|>${suffix}`;
+		}
+	})();
+	return { mode: 'completions', targetRange: range, prompt };
 }
 
 function buildUserPrompt(document: vscode.TextDocument, recentEdit?: RecentEditContextLike): string {

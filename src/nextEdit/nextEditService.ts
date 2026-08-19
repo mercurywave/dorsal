@@ -55,13 +55,14 @@ export class NextEditService {
 		recentEdit?: RecentEditContext,
 		baseUrl?: string,
 		apiKey?: string,
+		useInfillApi: boolean = true,
 		strategyId: string = 'clownfish',
 	): Promise<StrategyEvaluationResult> {
 		const strategy = resolveNextEditStrategy(strategyId);
 		const strategyRequest = strategy.buildRequest({
 			document,
 			recentEdit,
-			options: { maxTokens, model, thinkingBudget, baseUrl, apiKey },
+			options: { maxTokens, model, thinkingBudget, baseUrl, apiKey, useInfillApi },
 		});
 		const startedAt = Date.now();
 
@@ -117,6 +118,7 @@ export class NextEditService {
 		recentEdit?: RecentEditContext,
 		baseUrl?: string,
 		apiKey?: string,
+		useInfillApi: boolean = true,
 		strategyId: string = 'clownfish',
 	): Promise<NextEditSuggestion | undefined> {
 		return (await this.evaluateStrategy(
@@ -127,6 +129,7 @@ export class NextEditService {
 			recentEdit,
 			baseUrl,
 			apiKey,
+			useInfillApi,
 			strategyId,
 		)).suggestion;
 	}

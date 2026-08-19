@@ -5,7 +5,7 @@ export type NextEditStrategyChoice = 'clownfish' | 'tang' | 'manta' | 'parrotfis
 export interface DorsalConfig {
 	llmServer: { baseUrl: string; apiKey: string; model: string };
 	completions: { triggerMode: 'automatic' | 'manual' | 'off'; useInfillApi: boolean; maxTokens: number; debounceMs: number; maxLines: number; model: string; baseUrl: string; apiKey: string };
-	nextEditSuggestions: { enabled: boolean; autoTrigger: boolean; maxTokens: number; model: string; thinkingBudget: number; baseUrl: string; apiKey: string; strategy: NextEditStrategyChoice };
+	nextEditSuggestions: { enabled: boolean; autoTrigger: boolean; maxTokens: number; model: string; thinkingBudget: number; baseUrl: string; apiKey: string; useInfillApi: boolean; strategy: NextEditStrategyChoice };
 	inlineEdit: { maxTokens: number; model: string; thinkingBudget: number; baseUrl: string; apiKey: string };
 }
 
@@ -35,6 +35,7 @@ export function readConfig(): DorsalConfig {
 			thinkingBudget: cfg.get<number>('nextEditSuggestions.thinkingBudget', 200),
 			baseUrl: cfg.get<string>('nextEditSuggestions.baseUrl', ''),
 			apiKey: cfg.get<string>('nextEditSuggestions.apiKey', ''),
+			useInfillApi: cfg.get<boolean>('nextEditSuggestions.useInfillApi', true),
 			strategy: cfg.get<NextEditStrategyChoice>('nextEditSuggestions.strategy', 'clownfish'),
 		},
 		inlineEdit: {

@@ -163,6 +163,7 @@ export async function runNextEditBenchmark(
 					scenario.recentEdit,
 					undefined,
 					undefined,
+					true,
 					strategyId,
 				);
 				totalMs += evaluation.elapsedMs;
