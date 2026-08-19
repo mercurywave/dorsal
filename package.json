@@ -20,6 +20,10 @@
         "title": "Dorsal: Show Menu"
       },
       {
+        "command": "dorsal.benchmarkNextEditStrategies",
+        "title": "Dorsal: Benchmark Next Edit Strategies"
+      },
+      {
         "command": "dorsal.suggestNextEdit",
         "title": "Dorsal: Suggest Next Edit"
       },

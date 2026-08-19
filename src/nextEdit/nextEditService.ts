@@ -3,6 +3,14 @@ import { Change, diffLines } from 'diff';
 import { LlmService } from '../llm/llmService';
 import { resolveNextEditStrategy } from './nextEditStrategies';
 
+export interface StrategyEvaluationResult {
+	suggestion?: NextEditSuggestion;
+	parseable: boolean;
+	validSuggestion: boolean;
+	error: boolean;
+	elapsedMs: number;
+}
+
 export interface NextEditSuggestion {
 	range: vscode.Range;
 	replacementText: string;
@@ -39,6 +47,62 @@ export class NextEditService {
 		private readonly log: (message: string) => void,
 	) {}
 
+	async evaluateStrategy(
+		document: vscode.TextDocument,
+		maxTokens: number,
+		model: string,
+		thinkingBudget: number,
+		recentEdit?: RecentEditContext,
+		baseUrl?: string,
+		apiKey?: string,
+		strategyId: string = 'clownfish',
+	): Promise<StrategyEvaluationResult> {
+		const strategy = resolveNextEditStrategy(strategyId);
+		const strategyRequest = strategy.buildRequest({
+			document,
+			recentEdit,
+			options: { maxTokens, model, thinkingBudget, baseUrl, apiKey },
+		});
+		const startedAt = Date.now();
+
+		try {
+			let response = '';
+			if (strategyRequest.mode === 'chat' && strategyRequest.messages) {
+				response = await this.llmService.chat(
+					strategyRequest.messages,
+					{ maxTokens, model, thinkingBudget, baseUrl, apiKey },
+					'nextEdit',
+				);
+			} else if (strategyRequest.mode === 'infill' && strategyRequest.prefix !== undefined && strategyRequest.suffix !== undefined) {
+				response = await this.llmService.infill(
+					strategyRequest.prefix,
+					strategyRequest.suffix,
+					{ maxTokens, model, baseUrl, apiKey },
+					'nextEdit',
+				);
+			}
+
+			const suggestion = strategy.parse(response, document, strategyRequest.targetRange);
+			const parseable = response.trim().length > 0 && (suggestion !== undefined || response.trim().toUpperCase() === 'NONE');
+			return {
+				suggestion,
+				parseable,
+				validSuggestion: suggestion !== undefined,
+				error: false,
+				elapsedMs: Date.now() - startedAt,
+			};
+		} catch (err) {
+			this.log(`next edit suggestion request failed: ${String(err)}`);
+			return {
+				suggestion: undefined,
+				parseable: false,
+				validSuggestion: false,
+				error: true,
+				elapsedMs: Date.now() - startedAt,
+			};
+		}
+	}
+
 	async suggest(
 		document: vscode.TextDocument,
 		maxTokens: number,
@@ -49,38 +113,16 @@ export class NextEditService {
 		apiKey?: string,
 		strategyId: string = 'clownfish',
 	): Promise<NextEditSuggestion | undefined> {
-		const strategy = resolveNextEditStrategy(strategyId);
-		const strategyRequest = strategy.buildRequest({
+		return (await this.evaluateStrategy(
 			document,
+			maxTokens,
+			model,
+			thinkingBudget,
 			recentEdit,
-			options: { maxTokens, model, thinkingBudget, baseUrl, apiKey },
-		});
-
-		try {
-			if (strategyRequest.mode === 'chat' && strategyRequest.messages) {
-				const response = await this.llmService.chat(
-					strategyRequest.messages,
-					{ maxTokens, model, thinkingBudget, baseUrl, apiKey },
-					'nextEdit',
-				);
-				return strategy.parse(response, document, strategyRequest.targetRange);
-			}
-
-			if (strategyRequest.mode === 'infill' && strategyRequest.prefix !== undefined && strategyRequest.suffix !== undefined) {
-				const response = await this.llmService.infill(
-					strategyRequest.prefix,
-					strategyRequest.suffix,
-					{ maxTokens, model, baseUrl, apiKey },
-					'nextEdit',
-				);
-				return strategy.parse(response, document, strategyRequest.targetRange);
-			}
-		} catch (err) {
-			this.log(`next edit suggestion request failed: ${String(err)}`);
-			return undefined;
-		}
-
-		return undefined;
+			baseUrl,
+			apiKey,
+			strategyId,
+		)).suggestion;
 	}
 }
 

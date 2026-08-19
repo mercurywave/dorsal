@@ -5,6 +5,7 @@ import { InlineEditController } from './inlineEdit/inlineEditController';
 import { LlmService } from './llm/llmService';
 import { SuggestionCodeLensProvider } from './nextEdit/decorationRenderer';
 import { NextEditController } from './nextEdit/nextEditController';
+import { runNextEditBenchmark, summarizeBenchmarkResults } from './nextEdit/nextEditBenchmark';
 import { DorsalStatusBar } from './statusBar';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -26,6 +27,17 @@ export function activate(context: vscode.ExtensionContext) {
 		nextEditController,
 		inlineEditController,
 		vscode.commands.registerCommand('dorsal.showMenu', () => statusBar.showMenu()),
+		vscode.commands.registerCommand('dorsal.benchmarkNextEditStrategies', async () => {
+			const attempts = 3;
+			const benchmarkLlmService = new LlmService(readConfig(), () => undefined, () => undefined);
+			output.show(true);
+			output.appendLine(`Running next-edit benchmark for ${attempts} attempts per strategy.`);
+			const results = await runNextEditBenchmark(benchmarkLlmService, attempts, (message) => {
+				output.appendLine(message);
+			});
+			output.appendLine('');
+			output.appendLine(summarizeBenchmarkResults(results));
+		}),
 		vscode.languages.registerInlineCompletionItemProvider({ pattern: '**' }, completionProvider),
 		vscode.languages.registerCodeLensProvider({ pattern: '**' }, codeLensProvider),
 		vscode.workspace.onDidChangeConfiguration((event) => {
