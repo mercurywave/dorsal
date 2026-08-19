@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { DorsalConfig } from '../config';
 import { LlamaCppProvider } from './llamaCppProvider';
-import { ChatMessage, ChatOptions, InfillOptions, LlmProvider } from './types';
+import { ChatMessage, ChatOptions, CompletionOptions, InfillOptions, LlmProvider } from './types';
 
 // Identifies which feature made a request, so the status bar can track success/error per-workflow.
 export type Workflow = 'completions' | 'nextEdit' | 'inlineEdit';
@@ -67,6 +67,18 @@ export class LlmService {
 			return result;
 		} catch (err) {
 			this.log(`${this.provider.name} chat failed: ${String(err)}`);
+			this.statusEmitter.fire({ workflow, status: 'error' });
+			throw err;
+		}
+	}
+
+	async completions(prompt: string, options: CompletionOptions, workflow: Workflow): Promise<string> {
+		try {
+			const result = await this.provider.completions(prompt, options);
+			this.statusEmitter.fire({ workflow, status: 'success' });
+			return result;
+		} catch (err) {
+			this.log(`${this.provider.name} completions failed: ${String(err)}`);
 			this.statusEmitter.fire({ workflow, status: 'error' });
 			throw err;
 		}

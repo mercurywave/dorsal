@@ -23,9 +23,19 @@ export interface ChatOptions {
 	apiKey?: string;
 }
 
+export interface CompletionOptions {
+	maxTokens: number;
+	model?: string;
+	stop?: string[];
+	temperature?: number;
+	baseUrl?: string;
+	apiKey?: string;
+}
+
 export interface LlmProvider {
 	readonly name: string;
 	infill(prefix: string, suffix: string, options: InfillOptions): Promise<string>;
 	chat(messages: ChatMessage[], options: ChatOptions): Promise<string>;
+	completions(prompt: string, options: CompletionOptions): Promise<string>;
 	checkHealth(): Promise<boolean>;
 }

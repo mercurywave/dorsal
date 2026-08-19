@@ -80,6 +80,12 @@ export class NextEditService {
 					{ maxTokens, model, baseUrl, apiKey },
 					'nextEdit',
 				);
+			} else if (strategyRequest.mode === 'completions' && strategyRequest.prompt !== undefined) {
+				response = await this.llmService.completions(
+					strategyRequest.prompt,
+					{ maxTokens, model, baseUrl, apiKey },
+					'nextEdit',
+				);
 			}
 
 			const suggestion = strategy.parse(response, document, strategyRequest.targetRange);

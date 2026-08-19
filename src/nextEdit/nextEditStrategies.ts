@@ -20,8 +20,9 @@ export interface NextEditStrategyArgs {
 }
 
 export interface NextEditStrategyRequest {
-	mode: 'chat' | 'infill';
+	mode: 'chat' | 'infill' | 'completions';
 	messages?: ChatMessage[];
+	prompt?: string;
 	prefix?: string;
 	suffix?: string;
 	targetRange?: vscode.Range;
@@ -134,6 +135,16 @@ export const NEXT_EDIT_STRATEGIES: Record<string, NextEditStrategyDefinition> = 
 			],
 		}),
 		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseJsonLikeSuggestion(response, document) ?? parseSuggestion(response, document),
+	},
+	angelfish: {
+		id: 'angelfish',
+		label: 'Angelfish',
+		description: 'OpenAI-compatible completions mode that sends a direct prompt to /v1/completions for a single XML edit response.',
+		buildRequest: ({ document, recentEdit }: NextEditStrategyArgs): NextEditStrategyRequest => ({
+			mode: 'completions',
+			prompt: `${CLOWNFISH_SYSTEM_PROMPT}\n\n${buildUserPrompt(document, recentEdit)}`,
+		}),
+		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseSuggestion(response, document),
 	},
 };
 

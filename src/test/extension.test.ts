@@ -3,6 +3,7 @@ import * as assert from 'assert';
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
 import * as vscode from 'vscode';
+import { capCompletionMaxTokens } from '../llm/llamaCppProvider';
 import { buildRecentEditContext, parseSuggestion } from '../nextEdit/nextEditService';
 import { NEXT_EDIT_STRATEGIES, resolveNextEditStrategy } from '../nextEdit/nextEditStrategies';
 
@@ -24,6 +25,24 @@ suite('next-edit strategies', () => {
 		assert.ok(NEXT_EDIT_STRATEGIES.butterflyfish);
 		assert.ok(NEXT_EDIT_STRATEGIES.damselfish);
 		assert.ok(NEXT_EDIT_STRATEGIES.wrasse);
+		assert.ok(NEXT_EDIT_STRATEGIES.angelfish);
+	});
+
+	test('supports completions-mode strategy requests', async () => {
+		const document = await vscode.workspace.openTextDocument({ content: 'const value = 1;\nconsole.log(value);', language: 'plaintext' });
+		const request = NEXT_EDIT_STRATEGIES.angelfish.buildRequest({
+			document,
+			recentEdit: { diff: '@@ -1,1 +1,1 @@\n-const value = 1;\n+const count = 1;', changedLineRanges: [{ start: 0, end: 0 }] },
+			options: { maxTokens: 128 },
+		});
+		assert.strictEqual(request.mode, 'completions');
+		assert.ok(request.prompt?.includes('EDIT'));
+	});
+
+	test('caps completions output to a safe token budget', () => {
+		assert.strictEqual(capCompletionMaxTokens(4096), 256);
+		assert.strictEqual(capCompletionMaxTokens(32), 64);
+		assert.strictEqual(capCompletionMaxTokens(128), 128);
 	});
 
 	test('resolves unknown strategy names to the default clownfish mode', () => {

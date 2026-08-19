@@ -202,7 +202,8 @@
               "parrotfish",
               "butterflyfish",
               "damselfish",
-              "wrasse"
+              "wrasse",
+              "angelfish"
             ],
             "default": "clownfish",
             "order": 6,
