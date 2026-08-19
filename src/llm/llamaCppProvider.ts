@@ -43,6 +43,7 @@ export class LlamaCppProvider implements LlmProvider {
 	async infill(prefix: string, suffix: string, options: InfillOptions): Promise<string> {
 		const baseUrl = options.baseUrl || this.baseUrl;
 		const apiKey = options.apiKey || this.apiKey;
+		const timeoutMs = options.timeoutMs ?? 15_000;
 		const res = await fetchJson(`${baseUrl}/infill`, {
 			method: 'POST',
 			headers: this.headers(apiKey),
@@ -54,7 +55,7 @@ export class LlamaCppProvider implements LlmProvider {
 				stop: options.stop,
 				...((options.model || this.model) ? { model: options.model || this.model } : {}),
 			}),
-		}, 15_000);
+		}, timeoutMs);
 		if (!res.ok) {
 			throw new Error(`llama.cpp /infill failed: ${res.status} ${res.statusText}: ${await res.text()}`);
 		}
@@ -65,6 +66,7 @@ export class LlamaCppProvider implements LlmProvider {
 	async chat(messages: ChatMessage[], options: ChatOptions): Promise<string> {
 		const baseUrl = options.baseUrl || this.baseUrl;
 		const apiKey = options.apiKey || this.apiKey;
+		const timeoutMs = options.timeoutMs ?? 60_000;
 		const res = await fetchJson(`${baseUrl}/v1/chat/completions`, {
 			method: 'POST',
 			headers: this.headers(apiKey),
@@ -76,7 +78,7 @@ export class LlamaCppProvider implements LlmProvider {
 				...(options.thinkingBudget !== undefined ? { reasoning_budget: options.thinkingBudget, thinking_budget_tokens: options.thinkingBudget } : {}),
 				...((options.model || this.model) ? { model: options.model || this.model } : {}),
 			}),
-		}, 60_000);
+		}, timeoutMs);
 		if (!res.ok) {
 			throw new Error(`llama.cpp chat completion failed: ${res.status} ${res.statusText}: ${await res.text()}`);
 		}
@@ -88,6 +90,7 @@ export class LlamaCppProvider implements LlmProvider {
 		const baseUrl = options.baseUrl || this.baseUrl;
 		const apiKey = options.apiKey || this.apiKey;
 		const maxTokens = capCompletionMaxTokens(options.maxTokens);
+		const timeoutMs = options.timeoutMs ?? 60_000;
 		const res = await fetchJson(`${baseUrl}/v1/completions`, {
 			method: 'POST',
 			headers: this.headers(apiKey),
@@ -98,7 +101,7 @@ export class LlamaCppProvider implements LlmProvider {
 				stop: options.stop,
 				...((options.model || this.model) ? { model: options.model || this.model } : {}),
 			}),
-		}, 60_000);
+		}, timeoutMs);
 		if (!res.ok) {
 			throw new Error(`llama.cpp completion failed: ${res.status} ${res.statusText}: ${await res.text()}`);
 		}

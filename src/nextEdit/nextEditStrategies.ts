@@ -228,11 +228,12 @@ function normalizeLineEndings(text: string, eol: vscode.EndOfLine): string {
 const CLOWNFISH_SYSTEM_PROMPT = 'You are a code editing assistant. Given a file (with 1-based line numbers) and a '
 	+ 'diff showing the developer\'s recent changes, propose exactly one small follow-up edit elsewhere in the file that '
 	+ 'keeps the code consistent (e.g. a matching usage, an import, or a related declaration). '
+	+ 'Do not target the lines in the developer\'s recent diff itself; those were just edited and are not valid follow-up targets. '
 	+ 'Respond using EXACTLY this format and nothing else, with no markdown fences:\n'
 	+ '<EDIT><START_LINE>n</START_LINE><END_LINE>n</END_LINE><REPLACEMENT>\ncode\n</REPLACEMENT></EDIT>\n'
 	+ 'START_LINE and END_LINE are 1-based and inclusive, referring to the numbered lines shown to you. '
 	+ 'REPLACEMENT is the full text that should replace those lines. '
 	+ 'If no follow-up edit is needed, respond with exactly: NONE';
 
-const TANG_SYSTEM_PROMPT = 'Return exactly one small code edit in JSON. Use this schema and nothing else: {"startLine": 12, "endLine": 12, "replacement": "code"}. If no edit is needed, return "NONE".';
-const WRASSE_SYSTEM_PROMPT = 'Return only a minimal JSON object with startLine, endLine, and replacement for the exact edit to make. Do not include prose. If no edit is needed, return "NONE".';
+const TANG_SYSTEM_PROMPT = 'Return exactly one small code edit in JSON. Use this schema and nothing else: {"startLine": 12, "endLine": 12, "replacement": "code"}. Do not target the lines from the recent diff. If no edit is needed, return "NONE".';
+const WRASSE_SYSTEM_PROMPT = 'Return only a minimal JSON object with startLine, endLine, and replacement for the exact edit to make. Do not target the recent diff lines. Do not include prose. If no edit is needed, return "NONE".';

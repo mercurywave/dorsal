@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { LlmService } from '../llm/llmService';
-import { NextEditService, NextEditSuggestion, RecentEditContext } from './nextEditService';
+import { buildRecentEditContext, NextEditService, NextEditSuggestion, RecentEditContext } from './nextEditService';
 import { NEXT_EDIT_STRATEGIES } from './nextEditStrategies';
 
 export interface NextEditBenchmarkScenario {
@@ -30,11 +30,20 @@ export interface NextEditGenerationMetrics {
 	elapsedMs: number;
 }
 
+function makeScenario(name: string, beforeText: string, afterText: string): NextEditBenchmarkScenario {
+	const recentEdit = buildRecentEditContext(beforeText, afterText);
+	return {
+		name,
+		documentText: afterText,
+		recentEdit: recentEdit ?? undefined,
+	};
+}
+
 export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 	return [
-		{
-			name: 'rename-usage-consistency',
-			documentText: [
+		makeScenario(
+			'rename-usage-consistency',
+			[
 				'const userName = "alice";',
 				'const display = userName.toUpperCase();',
 				'console.log(display);',
@@ -43,52 +52,62 @@ export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 				'  return userName;',
 				'}',
 			].join('\n'),
-			recentEdit: {
-				diff: '@@ -1,3 +1,3 @@\n-const userName = "alice";\n+const userDisplayName = "alice";',
-				changedLineRanges: [{ start: 0, end: 2 }],
-			},
-		},
-		{
-			name: 'missing-import-from-type-rename',
-			documentText: [
+			[
+				'const userDisplayName = "alice";',
+				'const display = userDisplayName.toUpperCase();',
+				'console.log(display);',
+				'',
+				'function render() {',
+				'  return userDisplayName;',
+				'}',
+			].join('\n'),
+		),
+		makeScenario(
+			'missing-import-from-type-rename',
+			[
 				'import { register } from "./registry";',
 				'',
 				'const handler = register();',
 				'handler.run();',
 			].join('\n'),
-			recentEdit: {
-				diff: '@@ -1,3 +1,3 @@\n-import { register } from "./registry";\n+import { registerHandler } from "./registry";',
-				changedLineRanges: [{ start: 0, end: 2 }],
-			},
-		},
-		{
-			name: 'rename-prop-and-match-object-literal',
-			documentText: [
+			[
+				'import { registerHandler } from "./registry";',
+				'',
+				'const handler = registerHandler();',
+				'handler.run();',
+			].join('\n'),
+		),
+		makeScenario(
+			'rename-prop-and-match-object-literal',
+			[
 				'type User = { id: number; name: string };',
 				'',
 				'const user: User = { id: 1, name: "alice" };',
 				'console.log(user.name);',
 			].join('\n'),
-			recentEdit: {
-				diff: '@@ -1,3 +1,3 @@\n-type User = { id: number; name: string };\n+type User = { id: number; displayName: string };',
-				changedLineRanges: [{ start: 0, end: 2 }],
-			},
-		},
-		{
-			name: 'callback-arg-consistency',
-			documentText: [
+			[
+				'type User = { id: number; displayName: string };',
+				'',
+				'const user: User = { id: 1, displayName: "alice" };',
+				'console.log(user.displayName);',
+			].join('\n'),
+		),
+		makeScenario(
+			'callback-arg-consistency',
+			[
 				'const items = [1, 2, 3];',
 				'const doubled = items.map((value) => value * 2);',
 				'const total = doubled.reduce((sum, value) => sum + value, 0);',
 			].join('\n'),
-			recentEdit: {
-				diff: '@@ -1,3 +1,3 @@\n-const doubled = items.map((value) => value * 2);\n+const doubled = items.map((item) => item * 2);',
-				changedLineRanges: [{ start: 1, end: 2 }],
-			},
-		},
-		{
-			name: 'matching-return-value-and-caller',
-			documentText: [
+			[
+				'const items = [1, 2, 3];',
+				'const doubled = items.map((item) => item * 2);',
+				'const total = doubled.reduce((sum, item) => sum + item, 0);',
+			].join('\n'),
+		),
+		makeScenario(
+			'matching-return-value-and-caller',
+			[
 				'function getValue() {',
 				'  return 42;',
 				'}',
@@ -96,11 +115,15 @@ export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 				'const value = getValue();',
 				'console.log(value);',
 			].join('\n'),
-			recentEdit: {
-				diff: '@@ -1,4 +1,4 @@\n-function getValue() {\n-  return 42;\n-}\n+function resolveValue() {\n+  return 42;\n+}',
-				changedLineRanges: [{ start: 0, end: 3 }],
-			},
-		},
+			[
+				'function resolveValue() {',
+				'  return 42;',
+				'}',
+				'',
+				'const value = resolveValue();',
+				'console.log(value);',
+			].join('\n'),
+		),
 	];
 }
 

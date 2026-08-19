@@ -5,6 +5,7 @@ export interface InfillOptions {
 	temperature?: number;
 	baseUrl?: string;
 	apiKey?: string;
+	timeoutMs?: number;
 }
 
 export interface ChatMessage {
@@ -21,6 +22,7 @@ export interface ChatOptions {
 	thinkingBudget?: number;
 	baseUrl?: string;
 	apiKey?: string;
+	timeoutMs?: number;
 }
 
 export interface CompletionOptions {
@@ -30,6 +32,7 @@ export interface CompletionOptions {
 	temperature?: number;
 	baseUrl?: string;
 	apiKey?: string;
+	timeoutMs?: number;
 }
 
 export interface LlmProvider {

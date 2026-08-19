@@ -29,6 +29,7 @@ export interface RecentEditContext {
 const DIFF_CONTEXT_LINES = 2;
 const MAX_DIFF_HUNKS = 8;
 const MAX_DIFF_CHARS = 12_000;
+const NEXT_EDIT_TIMEOUT_MS = 3_000;
 
 // Requires a strict, machine-parseable response since model verbosity would otherwise
 // be unreliable to parse into a concrete text edit.
@@ -71,30 +72,31 @@ export class NextEditService {
 			if (strategyRequest.mode === 'chat' && strategyRequest.messages) {
 				response = await this.llmService.chat(
 					strategyRequest.messages,
-					{ maxTokens, model, thinkingBudget, baseUrl, apiKey },
+					{ maxTokens, model, thinkingBudget, baseUrl, apiKey, timeoutMs: NEXT_EDIT_TIMEOUT_MS },
 					'nextEdit',
 				);
 			} else if (strategyRequest.mode === 'infill' && strategyRequest.prefix !== undefined && strategyRequest.suffix !== undefined) {
 				response = await this.llmService.infill(
 					strategyRequest.prefix,
 					strategyRequest.suffix,
-					{ maxTokens, model, baseUrl, apiKey },
+					{ maxTokens, model, baseUrl, apiKey, timeoutMs: NEXT_EDIT_TIMEOUT_MS },
 					'nextEdit',
 				);
 			} else if (strategyRequest.mode === 'completions' && strategyRequest.prompt !== undefined) {
 				response = await this.llmService.completions(
 					strategyRequest.prompt,
-					{ maxTokens, model, baseUrl, apiKey },
+					{ maxTokens, model, baseUrl, apiKey, timeoutMs: NEXT_EDIT_TIMEOUT_MS },
 					'nextEdit',
 				);
 			}
 
 			const suggestion = strategy.parse(response, document, strategyRequest.targetRange);
 			const parseable = response.trim().length > 0 && (suggestion !== undefined || response.trim().toUpperCase() === 'NONE');
+			const validSuggestion = suggestion !== undefined && !isSuggestionOnChangedLines(suggestion, recentEdit);
 			return {
 				suggestion,
 				parseable,
-				validSuggestion: suggestion !== undefined,
+				validSuggestion,
 				error: false,
 				elapsedMs: Date.now() - startedAt,
 			};
@@ -133,6 +135,15 @@ export class NextEditService {
 			strategyId,
 		)).suggestion;
 	}
+}
+
+export function isSuggestionOnChangedLines(suggestion: NextEditSuggestion, recentEdit?: RecentEditContext): boolean {
+	if (!recentEdit) {
+		return false;
+	}
+	return recentEdit.changedLineRanges.some((changedRange) =>
+		suggestion.range.start.line <= changedRange.end && changedRange.start <= suggestion.range.end.line,
+	);
 }
 
 export function buildRecentEditContext(before: string, after: string): RecentEditContext | undefined {

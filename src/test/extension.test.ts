@@ -3,8 +3,8 @@ import * as assert from 'assert';
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
 import * as vscode from 'vscode';
-import { capCompletionMaxTokens } from '../llm/llamaCppProvider';
-import { buildRecentEditContext, parseSuggestion } from '../nextEdit/nextEditService';
+import { LlamaCppProvider, capCompletionMaxTokens } from '../llm/llamaCppProvider';
+import { buildRecentEditContext, isSuggestionOnChangedLines, parseSuggestion } from '../nextEdit/nextEditService';
 import { NEXT_EDIT_STRATEGIES, resolveNextEditStrategy } from '../nextEdit/nextEditStrategies';
 
 suite('Extension Test Suite', () => {
@@ -42,6 +42,34 @@ suite('next-edit strategies', () => {
 		assert.strictEqual(capCompletionMaxTokens(4096), 256);
 		assert.strictEqual(capCompletionMaxTokens(32), 64);
 		assert.strictEqual(capCompletionMaxTokens(128), 128);
+	});
+
+	test('aborts slow completions requests at the HTTP layer', async () => {
+		const provider = new LlamaCppProvider('http://example.test', '', '', () => undefined);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async (_input, init) => new Promise<Response>((resolve, reject) => {
+			const signal = init?.signal;
+			const onAbort = () => reject(new DOMException('aborted', 'AbortError'));
+			signal?.addEventListener('abort', onAbort, { once: true });
+			setTimeout(() => {
+				if (signal?.aborted) {
+					return;
+				}
+				resolve(new Response(JSON.stringify({ choices: [{ text: 'done' }] }), { status: 200 }));
+			}, 50);
+		});
+		try {
+			await assert.rejects(() => provider.completions('prompt', { maxTokens: 128, timeoutMs: 1 }), /AbortError|aborted/i);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('treats suggestions on the most recent edit as invalid for benchmark counting', () => {
+		const doc = new vscode.Range(0, 0, 0, 10);
+		const recentEdit = { diff: '@@ -1 +1 @@', changedLineRanges: [{ start: 0, end: 0 }] };
+		assert.strictEqual(isSuggestionOnChangedLines({ range: doc, replacementText: 'changed' }, recentEdit), true);
+		assert.strictEqual(isSuggestionOnChangedLines({ range: new vscode.Range(1, 0, 1, 10), replacementText: 'other' }, recentEdit), false);
 	});
 
 	test('resolves unknown strategy names to the default clownfish mode', () => {
