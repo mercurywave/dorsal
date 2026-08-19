@@ -4,6 +4,7 @@ import * as assert from 'assert';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { buildRecentEditContext, parseSuggestion } from '../nextEdit/nextEditService';
+import { NEXT_EDIT_STRATEGIES, resolveNextEditStrategy } from '../nextEdit/nextEditStrategies';
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
@@ -11,6 +12,22 @@ suite('Extension Test Suite', () => {
 	test('Sample test', () => {
 		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
 		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
+	});
+});
+
+suite('next-edit strategies', () => {
+	test('includes the coral reef strategy set', () => {
+		assert.ok(NEXT_EDIT_STRATEGIES.clownfish);
+		assert.ok(NEXT_EDIT_STRATEGIES.tang);
+		assert.ok(NEXT_EDIT_STRATEGIES.manta);
+		assert.ok(NEXT_EDIT_STRATEGIES.parrotfish);
+		assert.ok(NEXT_EDIT_STRATEGIES.butterflyfish);
+		assert.ok(NEXT_EDIT_STRATEGIES.damselfish);
+		assert.ok(NEXT_EDIT_STRATEGIES.wrasse);
+	});
+
+	test('resolves unknown strategy names to the default clownfish mode', () => {
+		assert.strictEqual(resolveNextEditStrategy('unknown' as any), NEXT_EDIT_STRATEGIES.clownfish);
 	});
 });
 

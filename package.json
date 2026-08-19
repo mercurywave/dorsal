@@ -189,16 +189,31 @@
             "order": 5,
             "description": "Maximum reasoning/thinking tokens for next-edit suggestions, for models that support extended thinking."
           },
+          "dorsal.nextEditSuggestions.strategy": {
+            "type": "string",
+            "enum": [
+              "clownfish",
+              "tang",
+              "manta",
+              "parrotfish",
+              "butterflyfish",
+              "damselfish",
+              "wrasse"
+            ],
+            "default": "clownfish",
+            "order": 6,
+            "description": "Output strategy for next-edit suggestions. Try different fish names to optimize for small or FIM-friendly models."
+          },
           "dorsal.nextEditSuggestions.baseUrl": {
             "type": "string",
             "default": "",
-            "order": 6,
+            "order": 7,
             "description": "Optional server base URL override for next-edit suggestions. Leave empty to use the default LLM server."
           },
           "dorsal.nextEditSuggestions.apiKey": {
             "type": "string",
             "default": "",
-            "order": 7,
+            "order": 8,
             "description": "Optional API key override for next-edit suggestions. Leave empty to use the default API key."
           }
         }

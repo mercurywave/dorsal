@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { Change, diffLines } from 'diff';
 import { LlmService } from '../llm/llmService';
+import { resolveNextEditStrategy } from './nextEditStrategies';
 
 export interface NextEditSuggestion {
 	range: vscode.Range;
@@ -46,32 +47,40 @@ export class NextEditService {
 		recentEdit?: RecentEditContext,
 		baseUrl?: string,
 		apiKey?: string,
+		strategyId: string = 'clownfish',
 	): Promise<NextEditSuggestion | undefined> {
-		const numberedLines: string[] = [];
-		for (let i = 0; i < document.lineCount; i++) {
-			numberedLines.push(`${i + 1}: ${document.lineAt(i).text}`);
-		}
-		const editPrompt = recentEdit
-			? `The developer\'s recent changes are:\n${recentEdit.diff}`
-			: 'There is no recent automatic edit diff; infer useful consistency changes from the current file.';
-		const userPrompt = `File:\n${numberedLines.join('\n')}\n\n${editPrompt}`;
+		const strategy = resolveNextEditStrategy(strategyId);
+		const strategyRequest = strategy.buildRequest({
+			document,
+			recentEdit,
+			options: { maxTokens, model, thinkingBudget, baseUrl, apiKey },
+		});
 
-		let response: string;
 		try {
-			response = await this.llmService.chat(
-				[
-					{ role: 'system', content: SYSTEM_PROMPT },
-					{ role: 'user', content: userPrompt },
-				],
-				{ maxTokens, model, thinkingBudget, baseUrl, apiKey },
-				'nextEdit',
-			);
+			if (strategyRequest.mode === 'chat' && strategyRequest.messages) {
+				const response = await this.llmService.chat(
+					strategyRequest.messages,
+					{ maxTokens, model, thinkingBudget, baseUrl, apiKey },
+					'nextEdit',
+				);
+				return strategy.parse(response, document, strategyRequest.targetRange);
+			}
+
+			if (strategyRequest.mode === 'infill' && strategyRequest.prefix !== undefined && strategyRequest.suffix !== undefined) {
+				const response = await this.llmService.infill(
+					strategyRequest.prefix,
+					strategyRequest.suffix,
+					{ maxTokens, model, baseUrl, apiKey },
+					'nextEdit',
+				);
+				return strategy.parse(response, document, strategyRequest.targetRange);
+			}
 		} catch (err) {
 			this.log(`next edit suggestion request failed: ${String(err)}`);
 			return undefined;
 		}
 
-		return parseSuggestion(response, document);
+		return undefined;
 	}
 }
 
