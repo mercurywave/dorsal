@@ -140,5 +140,16 @@ const CLOWNFISH_SYSTEM_PROMPT = 'You are a code editing assistant. Given a file 
 	+ 'REPLACEMENT is the full text that should replace those lines. '
 	+ 'If no follow-up edit is needed, respond with exactly: NONE';
 
-const TANG_SYSTEM_PROMPT = 'Return exactly one small code edit in JSON. Use this schema and nothing else: {"startLine": 12, "endLine": 12, "replacement": "code"}. Do not target the lines from the recent diff. If no edit is needed, return "NONE".';
-const WRASSE_SYSTEM_PROMPT = 'Return only a minimal JSON object with startLine, endLine, and replacement for the exact edit to make. Do not target the recent diff lines. Do not include prose. If no edit is needed, return "NONE".';
+const TANG_SYSTEM_PROMPT = 'Return exactly one precise follow-up edit in JSON using the numbered file in the user prompt as the source of truth. '
+	+ 'Choose a target range outside the recent diff lines. Use this schema and nothing else: '
+	+ '{"startLine": 12, "endLine": 12, "replacement": "  return getUserDisplayName(user);"}. '
+	+ 'The replacement must be the COMPLETE final text for the entire affected line(s), not a partial token, symbol, or fragment. '
+	+ 'Include the full indentation and all code text for the target line(s). '
+	+ 'If no edit is needed, return "NONE".';
+    
+const WRASSE_SYSTEM_PROMPT = 'Return only one minimal JSON object with startLine, endLine, and replacement for the exact edit to make. '
+	+ 'Use the numbered file contents as the source of truth; do not target the recent diff lines. '
+	+ 'The replacement must be the COMPLETE final text for the full target line(s), not a token, symbol, or partial fragment. '
+	+ 'Include the full indentation and all code for every affected line. '
+	+ 'Example: {"startLine": 8, "endLine": 8, "replacement": "  const displayName = getDisplayName(user);"}. '
+	+ 'If no edit is needed, return "NONE".';
