@@ -21,7 +21,7 @@ suite('next-edit strategies', () => {
 		assert.ok(NEXT_EDIT_STRATEGIES.clownfish);
 		assert.ok(NEXT_EDIT_STRATEGIES.tang);
 		assert.ok(NEXT_EDIT_STRATEGIES.wrasse);
-		assert.strictEqual('manta' in NEXT_EDIT_STRATEGIES, false);
+		assert.ok(NEXT_EDIT_STRATEGIES.manta);
 		assert.strictEqual('parrotfish' in NEXT_EDIT_STRATEGIES, false);
 		assert.strictEqual('butterflyfish' in NEXT_EDIT_STRATEGIES, false);
 		assert.strictEqual('damselfish' in NEXT_EDIT_STRATEGIES, false);
@@ -72,6 +72,24 @@ suite('next-edit strategies', () => {
 		assert.ok(result);
 		assert.strictEqual(result?.range.start.line, 0);
 		assert.strictEqual(result?.range.end.line, 0);
+		assert.strictEqual(result?.replacementText, 'const handler = registerHandler();');
+	});
+
+	test('manta uses a completions prompt that continues a diff hunk', async () => {
+		const doc = await vscode.workspace.openTextDocument({ content: 'import { register } from "./registry";\n\nconst handler = register();\nhandler.run();\n', language: 'plaintext' });
+		const request = NEXT_EDIT_STRATEGIES.manta.buildRequest({
+			document: doc,
+			recentEdit: { diff: '@@ -3,1 +3,1 @@\n-const handler = register();\n+const handler = registerHandler();', changedLineRanges: [{ start: 2, end: 2 }] },
+			options: { maxTokens: 128 },
+		});
+		assert.strictEqual(request.mode, 'completions');
+		assert.ok(request.prompt);
+		assert.ok(request.prompt.includes('previous diff:'));
+		assert.ok(request.prompt.includes('next diff:'));
+		assert.ok(request.prompt.includes('const handler = register();'));
+		const response = '@@ -3,1 +3,1 @@\n-const handler = register();\n+const handler = registerHandler();';
+		const result = NEXT_EDIT_STRATEGIES.manta.parse(response, doc);
+		assert.ok(result);
 		assert.strictEqual(result?.replacementText, 'const handler = registerHandler();');
 	});
 });

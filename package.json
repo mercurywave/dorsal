@@ -198,11 +198,12 @@
             "enum": [
               "clownfish",
               "tang",
-              "wrasse"
+              "wrasse",
+              "manta"
             ],
             "default": "clownfish",
             "order": 6,
-            "description": "Output strategy for next-edit suggestions. These strategies use normal chat-style prompting for edit inference."
+            "description": "Output strategy for next-edit suggestions. Compare the performance of different strategies using the 'Benchmark Next Edit Strategies' command."
           },
           "dorsal.nextEditSuggestions.baseUrl": {
             "type": "string",

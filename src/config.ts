@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export type NextEditStrategyChoice = 'clownfish' | 'tang' | 'wrasse';
+export type NextEditStrategyChoice = 'clownfish' | 'tang' | 'wrasse' | 'manta';
 
 export interface DorsalConfig {
 	llmServer: { baseUrl: string; apiKey: string; model: string };

@@ -74,6 +74,16 @@ export const NEXT_EDIT_STRATEGIES: Record<string, NextEditStrategyDefinition> = 
 		}),
 		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseGitDiffSuggestion(response, document) ?? parseJsonLikeSuggestion(response, document) ?? parseSuggestion(response, document),
 	},
+	manta: {
+		id: 'manta',
+		label: 'Manta',
+		description: 'Completion-style diff continuation for models that prefer to fill a patch hunk after a seeded prompt.',
+		buildRequest: ({ document, recentEdit }: NextEditStrategyArgs): NextEditStrategyRequest => ({
+			mode: 'completions',
+			prompt: buildCompletionPrompt(document, recentEdit),
+		}),
+		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseGitDiffSuggestion(response, document) ?? parseJsonLikeSuggestion(response, document) ?? parseSuggestion(response, document),
+	},
 };
 
 export type NextEditStrategyId = keyof typeof NEXT_EDIT_STRATEGIES;
@@ -92,6 +102,27 @@ function buildUserPrompt(document: vscode.TextDocument, recentEdit?: RecentEditC
 		? `The developer's recent changes are:\n${recentEdit.diff}`
 		: 'There is no recent automatic edit diff; infer useful consistency changes from the current file.';
 	return `File:\n${numberedLines.join('\n')}\n\n${editPrompt}`;
+}
+
+function buildCompletionPrompt(document: vscode.TextDocument, recentEdit?: RecentEditContextLike): string {
+	const numberedLines: string[] = [];
+	for (let i = 0; i < document.lineCount; i++) {
+		numberedLines.push(`${i + 1}: ${document.lineAt(i).text}`);
+	}
+	const previousDiff = recentEdit
+		? recentEdit.diff
+		: 'There is no recent automatic edit diff; infer a useful consistency edit from the file.';
+	return [
+		MANTA_COMPLETION_PROMPT,
+		'',
+		'File:',
+		numberedLines.join('\n'),
+		'',
+		'previous diff:',
+		previousDiff,
+		'',
+		'next diff:',
+	].join('\n');
 }
 
 function parseJsonLikeSuggestion(response: string, document: vscode.TextDocument): NextEditSuggestion | undefined {
@@ -203,3 +234,9 @@ const WRASSE_SYSTEM_PROMPT = 'Return exactly one git-style diff hunk for the sin
 	+ 'The new lines must be the COMPLETE final text for the full affected line(s), not a token or partial fragment. '
 	+ 'Include the full indentation and every code line in the replacement. '
 	+ 'If no edit is needed, return "NONE".';
+
+const MANTA_COMPLETION_PROMPT = 'You are a code editing assistant. Review the numbered file and ignore the lines in the previous diff. '
+	+ 'Your job is to write exactly one follow-up edit as a git-style diff hunk. '
+	+ 'The hunk must start with an @@ header and include both removed and added lines. '
+	+ 'Use the file as the source of truth and do not target the lines from the previous diff. '
+	+ 'Return only the next diff, with no markdown fences, commentary, or explanation.\n\n';
