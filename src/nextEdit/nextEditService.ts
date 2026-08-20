@@ -6,6 +6,7 @@ import { resolveNextEditStrategy } from './nextEditStrategies';
 export interface StrategyEvaluationResult {
 	suggestion?: NextEditSuggestion;
 	parseable: boolean;
+	lineNumberOk: boolean;
 	validSuggestion: boolean;
 	error: boolean;
 	elapsedMs: number;
@@ -85,10 +86,12 @@ export class NextEditService {
 
 			const suggestion = strategy.parse(response, document, strategyRequest.targetRange);
 			const parseable = response.trim().length > 0 && (suggestion !== undefined || response.trim().toUpperCase() === 'NONE');
-			const validSuggestion = suggestion !== undefined && !isSuggestionOnChangedLines(suggestion, recentEdit);
+			const lineNumberOk = suggestion !== undefined && !isSuggestionOnChangedLines(suggestion, recentEdit);
+			const validSuggestion = lineNumberOk;
 			return {
 				suggestion,
 				parseable,
+				lineNumberOk,
 				validSuggestion,
 				error: false,
 				elapsedMs: Date.now() - startedAt,
@@ -98,6 +101,7 @@ export class NextEditService {
 			return {
 				suggestion: undefined,
 				parseable: false,
+				lineNumberOk: false,
 				validSuggestion: false,
 				error: true,
 				elapsedMs: Date.now() - startedAt,
