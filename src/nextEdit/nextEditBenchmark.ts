@@ -275,9 +275,138 @@ export async function runNextEditBenchmark(
 	});
 }
 
+class BenchmarkTextDocument implements vscode.TextDocument {
+	public readonly uri: vscode.Uri;
+	public readonly fileName: string;
+	public readonly isUntitled = true;
+	public readonly languageId = 'plaintext';
+	public readonly version = 1;
+	public readonly isDirty = false;
+	public readonly isClosed = false;
+	public readonly eol = vscode.EndOfLine.LF;
+	public readonly encoding = 'utf8';
+	public readonly notebook = undefined;
+	public readonly lineCount: number;
+	private readonly content: string;
+	private readonly lines: string[];
+	private readonly lineStarts: number[];
+
+	constructor(name: string, content: string) {
+		this.uri = vscode.Uri.from({ scheme: 'dorsal-benchmark', path: `/${name}.txt` });
+		this.fileName = `${name}.txt`;
+		this.content = content;
+		this.lines = splitLinesPreserveTrailingEmpty(content);
+		this.lineStarts = computeLineStarts(content);
+		this.lineCount = this.lines.length;
+	}
+
+	lineAt(positionOrLine: number | vscode.Position): vscode.TextLine {
+		const position = typeof positionOrLine === 'number'
+			? new vscode.Position(positionOrLine, 0)
+			: this.validatePosition(positionOrLine);
+		const lineNumber = position.line;
+		const text = this.lines[lineNumber] ?? '';
+		const start = this.lineStarts[lineNumber] ?? 0;
+		const range = new vscode.Range(new vscode.Position(lineNumber, 0), new vscode.Position(lineNumber, text.length));
+		return {
+			lineNumber,
+			text,
+			range,
+			rangeIncludingLineBreak: range,
+			firstNonWhitespaceCharacterIndex: text.search(/\S|$/),
+			isEmptyOrWhitespace: /^\s*$/.test(text),
+		};
+	}
+
+	getText(range?: vscode.Range): string {
+		if (!range) {
+			return this.content;
+		}
+		const safeRange = this.validateRange(range);
+		return this.content.slice(this.offsetAt(safeRange.start), this.offsetAt(safeRange.end));
+	}
+
+	offsetAt(position: vscode.Position): number {
+		const safePosition = this.validatePosition(position);
+		const lineStart = this.lineStarts[safePosition.line] ?? 0;
+		const lineLength = (this.lines[safePosition.line] ?? '').length;
+		return lineStart + Math.max(0, Math.min(safePosition.character, lineLength));
+	}
+
+	positionAt(offset: number): vscode.Position {
+		const safeOffset = Math.max(0, Math.min(offset, this.content.length));
+		let lineIndex = 0;
+		for (let index = 0; index < this.lineStarts.length; index++) {
+			if (this.lineStarts[index] <= safeOffset) {
+				lineIndex = index;
+			} else {
+				break;
+			}
+		}
+		const lineStart = this.lineStarts[lineIndex] ?? 0;
+		return new vscode.Position(lineIndex, safeOffset - lineStart);
+	}
+
+	getWordRangeAtPosition(_position: vscode.Position, _regex?: RegExp): vscode.Range | undefined {
+		return undefined;
+	}
+
+	validateRange(range: vscode.Range): vscode.Range {
+		const startLine = Math.max(0, Math.min(range.start.line, this.lineCount - 1));
+		const endLine = Math.max(0, Math.min(range.end.line, this.lineCount - 1));
+		const startCharacter = Math.max(0, Math.min(range.start.character, (this.lines[startLine] ?? '').length));
+		const endCharacter = Math.max(0, Math.min(range.end.character, (this.lines[endLine] ?? '').length));
+		return new vscode.Range(new vscode.Position(startLine, startCharacter), new vscode.Position(endLine, endCharacter));
+	}
+
+	validatePosition(position: vscode.Position): vscode.Position {
+		const line = Math.max(0, Math.min(position.line, this.lineCount - 1));
+		const lineLength = (this.lines[line] ?? '').length;
+		const character = Math.max(0, Math.min(position.character, lineLength));
+		return new vscode.Position(line, character);
+	}
+
+	save(): Thenable<boolean> {
+		return Promise.resolve(true);
+	}
+
+	saveAs(_target: vscode.Uri): Thenable<boolean> {
+		return Promise.resolve(true);
+	}
+
+	show(): void {
+		// Intentionally blank: benchmark docs are never opened in the workspace.
+	}
+
+	hide(): void {
+		// Intentionally blank: benchmark docs are never opened in the workspace.
+	}
+}
+
+function splitLinesPreserveTrailingEmpty(content: string): string[] {
+	if (content.length === 0) {
+		return [''];
+	}
+	const lines = content.split(/\r\n|\r|\n/);
+	return lines[lines.length - 1] === '' ? lines : lines;
+}
+
+function computeLineStarts(content: string): number[] {
+	const starts = [0];
+	for (let index = 0; index < content.length; index++) {
+		const current = content[index];
+		if (current === '\r') {
+			if (content[index + 1] === '\n') {
+				index += 1;
+			}
+			starts.push(index + 1);
+		} else if (current === '\n') {
+			starts.push(index + 1);
+		}
+	}
+	return starts;
+}
+
 export async function buildBenchmarkDocument(scenario: NextEditBenchmarkScenario): Promise<vscode.TextDocument> {
-	return await vscode.workspace.openTextDocument({
-		language: 'plaintext',
-		content: scenario.documentText,
-	});
+	return new BenchmarkTextDocument(scenario.name, scenario.documentText);
 }
