@@ -64,7 +64,7 @@ export const NEXT_EDIT_STRATEGIES: Record<string, NextEditStrategyDefinition> = 
 	wrasse: {
 		id: 'wrasse',
 		label: 'Wrasse',
-		description: 'Minimal JSON schema for models that respond better to compact structured output.',
+		description: 'Git-style diff hunk for minimal patch output from models that do better with patch syntax.',
 		buildRequest: ({ document, recentEdit }: NextEditStrategyArgs): NextEditStrategyRequest => ({
 			mode: 'chat',
 			messages: [
@@ -72,7 +72,7 @@ export const NEXT_EDIT_STRATEGIES: Record<string, NextEditStrategyDefinition> = 
 				{ role: 'user', content: buildUserPrompt(document, recentEdit) },
 			],
 		}),
-		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseJsonLikeSuggestion(response, document) ?? parseSuggestion(response, document),
+		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseGitDiffSuggestion(response, document) ?? parseJsonLikeSuggestion(response, document) ?? parseSuggestion(response, document),
 	},
 };
 
@@ -121,6 +121,56 @@ function parseJsonLikeSuggestion(response: string, document: vscode.TextDocument
 	}
 }
 
+function parseGitDiffSuggestion(response: string, document: vscode.TextDocument): NextEditSuggestion | undefined {
+	const trimmed = response.trim();
+	if (!trimmed || trimmed === 'NONE') {
+		return undefined;
+	}
+
+	const hunkMatch = /^@@ -(?<oldStart>\d+)(?:,(?<oldLength>\d+))? \+(?<newStart>\d+)(?:,(?<newLength>\d+))? @@\r?\n(?<body>[\s\S]*)$/m.exec(trimmed);
+	if (!hunkMatch?.groups) {
+		return undefined;
+	}
+
+	const oldStart = Number(hunkMatch.groups.oldStart);
+	const oldLength = Number(hunkMatch.groups.oldLength ?? '1');
+	const bodyLines = hunkMatch.groups.body.split(/\r?\n/);
+	const replacementLines: string[] = [];
+	const oldLines: string[] = [];
+	for (const line of bodyLines) {
+		if (!line || line.startsWith('\\')) {
+			continue;
+		}
+		if (line.startsWith('-')) {
+			oldLines.push(line.slice(1));
+			continue;
+		}
+		if (line.startsWith('+')) {
+			replacementLines.push(line.slice(1));
+			continue;
+		}
+		if (line.startsWith(' ')) {
+			oldLines.push(line.slice(1));
+			replacementLines.push(line.slice(1));
+		}
+	}
+	if (replacementLines.length === 0) {
+		return undefined;
+	}
+
+	const oldText = oldLines.join(document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n');
+	const replacementText = replacementLines.join(document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n');
+	if (normalizeWhitespace(oldText) === normalizeWhitespace(replacementText)) {
+		return undefined;
+	}
+
+	const normalizedStart = Math.max(0, oldStart - 1);
+	const rangeLength = Math.max(1, oldLength || 1);
+	const normalizedEnd = Math.min(document.lineCount - 1, normalizedStart + rangeLength - 1);
+	const range = new vscode.Range(normalizedStart, 0, normalizedEnd, document.lineAt(normalizedEnd).text.length);
+	return { range, replacementText: normalizeLineEndings(replacementText, document.eol) };
+}
+
 function normalizeWhitespace(text: string): string {
 	return text.replace(/\s+/g, ' ').trim();
 }
@@ -147,9 +197,9 @@ const TANG_SYSTEM_PROMPT = 'Return exactly one precise follow-up edit in JSON us
 	+ 'Include the full indentation and all code text for the target line(s). '
 	+ 'If no edit is needed, return "NONE".';
 
-const WRASSE_SYSTEM_PROMPT = 'Return only one minimal JSON object with startLine, endLine, and replacement for the exact edit to make. '
+const WRASSE_SYSTEM_PROMPT = 'Return exactly one git-style diff hunk for the single follow-up edit to make. '
 	+ 'Use the numbered file contents as the source of truth; do not target the recent diff lines. '
-	+ 'The replacement must be the COMPLETE final text for the full target line(s), not a token, symbol, or partial fragment. '
-	+ 'Include the full indentation and all code for every affected line. '
-	+ 'Example: {"startLine": 8, "endLine": 8, "replacement": "  const displayName = getDisplayName(user);"}. '
+	+ 'Output only the hunk body in unified diff format, like: "@@ -12,1 +12,1 @@\\n-const oldName = value;\\n+const newName = value;". '
+	+ 'The new lines must be the COMPLETE final text for the full affected line(s), not a token or partial fragment. '
+	+ 'Include the full indentation and every code line in the replacement. '
 	+ 'If no edit is needed, return "NONE".';

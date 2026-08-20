@@ -64,6 +64,16 @@ suite('next-edit strategies', () => {
 	test('resolves unknown strategy names to the default clownfish mode', () => {
 		assert.strictEqual(resolveNextEditStrategy('unknown' as any), NEXT_EDIT_STRATEGIES.clownfish);
 	});
+
+	test('wrasse accepts git-style diff output', async () => {
+		const doc = await vscode.workspace.openTextDocument({ content: 'const handler = registerHandler();\n', language: 'plaintext' });
+		const response = '@@ -1,1 +1,1 @@\n-const handler = register();\n+const handler = registerHandler();';
+		const result = NEXT_EDIT_STRATEGIES.wrasse.parse(response, doc);
+		assert.ok(result);
+		assert.strictEqual(result?.range.start.line, 0);
+		assert.strictEqual(result?.range.end.line, 0);
+		assert.strictEqual(result?.replacementText, 'const handler = registerHandler();');
+	});
 });
 
 suite('parseSuggestion', () => {
