@@ -98,6 +98,23 @@ suite('parseSuggestion', () => {
 	});
 });
 
+// Verifies each "@@ -oldStart,oldLength +newStart,newLength @@" header matches the
+// actual number of old/new-side lines in its body, so context lines are never miscounted.
+function assertHunkHeadersMatchBody(diff: string, scenarioName: string): void {
+	const hunks = diff.split(/(?=^@@ )/m).filter((hunk) => hunk.startsWith('@@ '));
+	for (const hunk of hunks) {
+		const lines = hunk.split('\n');
+		const header = /^@@ -\d+,(\d+) \+\d+,(\d+) @@$/.exec(lines[0]);
+		assert.ok(header, `${scenarioName}: malformed hunk header "${lines[0]}"`);
+		const [, oldLength, newLength] = header!;
+		const bodyLines = lines.slice(1).filter((line) => /^[ +-]/.test(line));
+		const actualOldLength = bodyLines.filter((line) => line[0] !== '+').length;
+		const actualNewLength = bodyLines.filter((line) => line[0] !== '-').length;
+		assert.strictEqual(Number(oldLength), actualOldLength, `${scenarioName}: old length mismatch in "${hunk}"`);
+		assert.strictEqual(Number(newLength), actualNewLength, `${scenarioName}: new length mismatch in "${hunk}"`);
+	}
+}
+
 suite('buildRecentEditContext', () => {
 	test('describes a replacement as removed and added text', () => {
 		const result = buildRecentEditContext('const value = fetch(id);', 'const value = await fetch(id);');
@@ -228,7 +245,30 @@ suite('buildRecentEditContext', () => {
 			assert.ok(result, scenario.name);
 			assert.ok(result?.diff.includes(scenario.hunkHead), `${scenario.name}: expected ${scenario.hunkHead} but got ${result?.diff}`);
 			assert.deepStrictEqual(result?.changedLineRanges, scenario.changedLineRanges, scenario.name);
+			assertHunkHeadersMatchBody(result!.diff, scenario.name);
 		}
+	});
+
+	test('diff contains only the targeted change, not unrelated surrounding lines', () => {
+		// Regression test: a single-line rename must produce a diff with exactly the
+		// removed/added lines - no unmodified lines from elsewhere in the file.
+		const before = [
+			'const userName = "alice";',
+			'const display = userName.toUpperCase();',
+			'console.log(display);',
+		].join('\n');
+		const after = [
+			'const userDisplayName = "alice";',
+			'const display = userName.toUpperCase();',
+			'console.log(display);',
+		].join('\n');
+		const result = buildRecentEditContext(before, after);
+		assert.ok(result);
+		assert.strictEqual(
+			result?.diff,
+			'@@ -1,1 +1,1 @@\n-const userName = "alice";\n+const userDisplayName = "alice";',
+		);
+		assertHunkHeadersMatchBody(result!.diff, 'single-line-rename-no-surrounding-context');
 	});
 
 	test('truncates a large edit diff', () => {

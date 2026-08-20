@@ -26,6 +26,7 @@ export interface RecentEditContext {
 	changedLineRanges: ChangedLineRange[];
 }
 
+// Nearby changes with a gap of unchanged lines no larger than this (x2) are merged into one hunk.
 const DIFF_CONTEXT_LINES = 2;
 const MAX_DIFF_HUNKS = 8;
 const MAX_DIFF_CHARS = 12_000;
@@ -164,11 +165,9 @@ export function buildRecentEditContext(before: string, after: string): RecentEdi
 		}
 	}
 
-	const hunks = groups.slice(0, MAX_DIFF_HUNKS).map((group) => {
-		const start = Math.max(0, group.start - DIFF_CONTEXT_LINES);
-		const end = Math.min(operations.length - 1, group.end + DIFF_CONTEXT_LINES);
-		return renderHunk(operations.slice(start, end + 1));
-	});
+	// group.start/end are indexes of changed operations, so this slice covers exactly the
+	// targeted change (plus any small unchanged gap connecting merged changes) - no padding.
+	const hunks = groups.slice(0, MAX_DIFF_HUNKS).map((group) => renderHunk(operations.slice(group.start, group.end + 1)));
 	const omittedHunks = groups.length - hunks.length;
 	let diff = hunks.join('\n');
 	if (omittedHunks > 0) {
@@ -218,37 +217,13 @@ function splitLines(value: string): string[] {
 }
 
 function renderHunk(operations: LineOperation[]): string {
-	const firstChanged = operations.findIndex((operation) => operation.kind !== 'equal');
-	const lastChanged = operations.length - 1 - [...operations].reverse().findIndex((operation) => operation.kind !== 'equal');
-	const start = Math.max(0, firstChanged - DIFF_CONTEXT_LINES);
-	const end = Math.min(operations.length, lastChanged + DIFF_CONTEXT_LINES + 1);
-	const visibleOperations = operations.slice(start, end).map((operation, index, visible) => {
-		if (operation.kind !== 'equal') {
-			return operation;
-		}
-		const first = index === 0;
-		const last = index === visible.length - 1;
-		if (!first && !last) {
-			return operation;
-		}
-		const lines = first
-			? operation.lines.slice(-DIFF_CONTEXT_LINES)
-			: operation.lines.slice(0, DIFF_CONTEXT_LINES);
-		const skippedLines = operation.lines.length - lines.length;
-		return {
-			...operation,
-			lines,
-			oldStart: operation.oldStart + skippedLines,
-			newStart: operation.newStart + skippedLines,
-		};
-	});
-	const removed = visibleOperations.filter((operation) => operation.kind === 'removed');
-	const added = visibleOperations.filter((operation) => operation.kind === 'added');
-	const oldStart = removed[0]?.oldStart ?? added[0]?.oldStart ?? visibleOperations[0].oldStart;
-	const newStart = added[0]?.newStart ?? removed[0]?.newStart ?? visibleOperations[0].newStart;
-	const oldLength = removed.reduce((total, operation) => total + operation.lines.length, 0);
-	const newLength = added.reduce((total, operation) => total + operation.lines.length, 0);
-	const body = visibleOperations.flatMap((operation) => operation.lines.map((line) => `${operation.kind === 'equal' ? ' ' : operation.kind === 'removed' ? '-' : '+'}${line}`));
+	// oldStart/newStart track file position through every operation kind, so the first
+	// operation's positions are always correct regardless of its kind.
+	const oldStart = operations[0].oldStart;
+	const newStart = operations[0].newStart;
+	const oldLength = operations.reduce((total, operation) => total + (operation.kind !== 'added' ? operation.lines.length : 0), 0);
+	const newLength = operations.reduce((total, operation) => total + (operation.kind !== 'removed' ? operation.lines.length : 0), 0);
+	const body = operations.flatMap((operation) => operation.lines.map((line) => `${operation.kind === 'equal' ? ' ' : operation.kind === 'removed' ? '-' : '+'}${line}`));
 	return `@@ -${oldStart},${oldLength} +${newStart},${newLength} @@\n${body.join('\n')}`;
 }
 
