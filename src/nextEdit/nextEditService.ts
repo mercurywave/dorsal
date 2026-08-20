@@ -242,12 +242,14 @@ function renderHunk(operations: LineOperation[]): string {
 			newStart: operation.newStart + skippedLines,
 		};
 	});
-	const oldLines = visibleOperations.flatMap((operation) => operation.kind === 'added' ? [] : operation.lines);
-	const newLines = visibleOperations.flatMap((operation) => operation.kind === 'removed' ? [] : operation.lines);
-	const oldStart = visibleOperations.find((operation) => operation.kind !== 'added')?.oldStart ?? visibleOperations[0].oldStart;
-	const newStart = visibleOperations.find((operation) => operation.kind !== 'removed')?.newStart ?? visibleOperations[0].newStart;
+	const removed = visibleOperations.filter((operation) => operation.kind === 'removed');
+	const added = visibleOperations.filter((operation) => operation.kind === 'added');
+	const oldStart = removed[0]?.oldStart ?? added[0]?.oldStart ?? visibleOperations[0].oldStart;
+	const newStart = added[0]?.newStart ?? removed[0]?.newStart ?? visibleOperations[0].newStart;
+	const oldLength = removed.reduce((total, operation) => total + operation.lines.length, 0);
+	const newLength = added.reduce((total, operation) => total + operation.lines.length, 0);
 	const body = visibleOperations.flatMap((operation) => operation.lines.map((line) => `${operation.kind === 'equal' ? ' ' : operation.kind === 'removed' ? '-' : '+'}${line}`));
-	return `@@ -${oldStart},${oldLines.length} +${newStart},${newLines.length} @@\n${body.join('\n')}`;
+	return `@@ -${oldStart},${oldLength} +${newStart},${newLength} @@\n${body.join('\n')}`;
 }
 
 function changedLineRange(operations: LineOperation[], group: { start: number; end: number }): ChangedLineRange {

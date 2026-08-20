@@ -126,6 +126,111 @@ suite('buildRecentEditContext', () => {
 		]);
 	});
 
+	test('covers all existing benchmark scenarios with the correct changed line ranges', () => {
+		const scenarios = [
+			{
+				name: 'rename-usage-consistency',
+				before: [
+					'const userName = "alice";',
+					'const display = userName.toUpperCase();',
+					'console.log(display);',
+					'',
+					'function render() {',
+					'  return userName;',
+					'}',
+				].join('\n'),
+				after: [
+					'const userDisplayName = "alice";',
+					'const display = userName.toUpperCase();',
+					'console.log(display);',
+					'',
+					'function render() {',
+					'  return userName;',
+					'}',
+				].join('\n'),
+				hunkHead: '@@ -1,1 +1,1 @@',
+				changedLineRanges: [{ start: 0, end: 0 }],
+			},
+			{
+				name: 'missing-import-from-type-rename',
+				before: [
+					'import { register } from "./registry";',
+					'',
+					'const handler = register();',
+					'handler.run();',
+				].join('\n'),
+				after: [
+					'import { register } from "./registry";',
+					'',
+					'const handler = registerHandler();',
+					'handler.run();',
+				].join('\n'),
+				hunkHead: '@@ -3,1 +3,1 @@',
+				changedLineRanges: [{ start: 2, end: 2 }],
+			},
+			{
+				name: 'rename-prop-and-match-object-literal',
+				before: [
+					'type User = { id: number; name: string };',
+					'',
+					'const user: User = { id: 1, name: "alice" };',
+					'console.log(user.name);',
+				].join('\n'),
+				after: [
+					'type User = { id: number; displayName: string };',
+					'',
+					'const user: User = { id: 1, name: "alice" };',
+					'console.log(user.name);',
+				].join('\n'),
+				hunkHead: '@@ -1,1 +1,1 @@',
+				changedLineRanges: [{ start: 0, end: 0 }],
+			},
+			{
+				name: 'callback-arg-consistency',
+				before: [
+					'const items = [1, 2, 3];',
+					'const doubled = items.map((value) => value * 2);',
+					'const total = doubled.reduce((sum, value) => sum + value, 0);',
+				].join('\n'),
+				after: [
+					'const items = [1, 2, 3];',
+					'const doubled = items.map((item) => item * 2);',
+					'const total = doubled.reduce((sum, value) => sum + value, 0);',
+				].join('\n'),
+				hunkHead: '@@ -2,1 +2,1 @@',
+				changedLineRanges: [{ start: 1, end: 1 }],
+			},
+			{
+				name: 'matching-return-value-and-caller',
+				before: [
+					'function getValue() {',
+					'  return 42;',
+					'}',
+					'',
+					'const value = getValue();',
+					'console.log(value);',
+				].join('\n'),
+				after: [
+					'function resolveValue() {',
+					'  return 42;',
+					'}',
+					'',
+					'const value = getValue();',
+					'console.log(value);',
+				].join('\n'),
+				hunkHead: '@@ -1,1 +1,1 @@',
+				changedLineRanges: [{ start: 0, end: 0 }],
+			},
+		];
+
+		for (const scenario of scenarios) {
+			const result = buildRecentEditContext(scenario.before, scenario.after);
+			assert.ok(result, scenario.name);
+			assert.ok(result?.diff.includes(scenario.hunkHead), `${scenario.name}: expected ${scenario.hunkHead} but got ${result?.diff}`);
+			assert.deepStrictEqual(result?.changedLineRanges, scenario.changedLineRanges, scenario.name);
+		}
+	});
+
 	test('truncates a large edit diff', () => {
 		const before = 'old\n';
 		const after = Array.from({ length: 5000 }, (_, index) => `inserted ${index}`).join('\n');
