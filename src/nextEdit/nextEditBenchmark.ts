@@ -132,7 +132,7 @@ export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 	];
 }
 
-export function summarizeBenchmarkResults(results: NextEditBenchmarkResult[]): string {
+export function summarizeBenchmarkResults(results: NextEditBenchmarkResult[], modelName?: string): string {
 	const rows = results.map((result) => ({
 		strategy: result.strategy,
 		avgMs: `${result.averageMs.toFixed(1)} ms`,
@@ -158,7 +158,8 @@ export function summarizeBenchmarkResults(results: NextEditBenchmarkResult[]): s
 	const header = line('strategy', 'avg ms', 'complete', 'parseable', 'suggested', 'line # ok', 'valid');
 	const separator = line('-'.repeat(strategyWidth), '-'.repeat(avgWidth), '-'.repeat(completeWidth), '-'.repeat(parseableWidth), '-'.repeat(suggestedWidth), '-'.repeat(lineNumberOkWidth), '-'.repeat(validWidth));
 	const body = rows.map((row) => line(row.strategy, row.avgMs, row.complete, row.parseable, row.suggested, row.lineNumberOk, row.valid)).join('\n');
-	return ['Next-edit strategy benchmark summary:', header, separator, body].join('\n');
+	const summaryTitle = modelName ? `Next-edit strategy benchmark summary for ${modelName}:` : 'Next-edit strategy benchmark summary:';
+	return [summaryTitle, header, separator, body].join('\n');
 }
 
 export function getStrategyOptions(): string[] {
@@ -169,12 +170,13 @@ export async function runNextEditBenchmark(
 	llmService: LlmService,
 	attempts: number = 3,
 	progress: (message: string) => void = () => undefined,
+	modelOverride: string = '',
 ): Promise<NextEditBenchmarkResult[]> {
 	progress('Warming model up...');
 	try {
 		await llmService.chat(
 			[{ role: 'user', content: 'Reply with OK.' }],
-			{ maxTokens: 8, temperature: 0.1, timeoutMs: 15_000 },
+			{ maxTokens: 8, model: modelOverride, temperature: 0.1, timeoutMs: 15_000 },
 			'nextEdit',
 		);
 	} catch (error) {
@@ -219,7 +221,7 @@ export async function runNextEditBenchmark(
 				const evaluation = await service.evaluateStrategy(
 					document,
 					4096,
-					'',
+					modelOverride,
 					200,
 					scenario.recentEdit,
 					undefined,

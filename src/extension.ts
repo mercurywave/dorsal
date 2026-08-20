@@ -29,14 +29,21 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('dorsal.showMenu', () => statusBar.showMenu()),
 		vscode.commands.registerCommand('dorsal.benchmarkNextEditStrategies', async () => {
 			const attempts = 3;
-			const benchmarkLlmService = new LlmService(readConfig(), () => undefined, () => undefined);
+			const benchmarkConfig = readConfig();
+			const benchmarkLlmService = new LlmService(benchmarkConfig, () => undefined, () => undefined);
+			const modelName = benchmarkConfig.nextEditSuggestions.model || benchmarkConfig.llmServer.model || 'default server model';
 			output.show(true);
 			output.appendLine(`Running next-edit benchmark for ${attempts} attempts per strategy.`);
-			const results = await runNextEditBenchmark(benchmarkLlmService, attempts, (message) => {
-				output.appendLine(message);
-			});
+			const results = await runNextEditBenchmark(
+				benchmarkLlmService,
+				attempts,
+				(message) => {
+					output.appendLine(message);
+				},
+				benchmarkConfig.nextEditSuggestions.model || benchmarkConfig.llmServer.model,
+			);
 			output.appendLine('');
-			output.appendLine(summarizeBenchmarkResults(results));
+			output.appendLine(summarizeBenchmarkResults(results, modelName));
 		}),
 		vscode.languages.registerInlineCompletionItemProvider({ pattern: '**' }, completionProvider),
 		vscode.languages.registerCodeLensProvider({ pattern: '**' }, codeLensProvider),
