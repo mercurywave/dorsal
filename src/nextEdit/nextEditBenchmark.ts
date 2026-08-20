@@ -171,12 +171,14 @@ export async function runNextEditBenchmark(
 	attempts: number = 3,
 	progress: (message: string) => void = () => undefined,
 	modelOverride: string = '',
+	baseUrlOverride: string = '',
+	apiKeyOverride: string = '',
 ): Promise<NextEditBenchmarkResult[]> {
 	progress('Warming model up...');
 	try {
 		await llmService.chat(
 			[{ role: 'user', content: 'Reply with OK.' }],
-			{ maxTokens: 8, model: modelOverride, temperature: 0.1, timeoutMs: 15_000 },
+			{ maxTokens: 8, model: modelOverride, temperature: 0.1, timeoutMs: 15_000, baseUrl: baseUrlOverride, apiKey: apiKeyOverride },
 			'nextEdit',
 		);
 	} catch (error) {
@@ -224,8 +226,8 @@ export async function runNextEditBenchmark(
 					modelOverride,
 					200,
 					scenario.recentEdit,
-					undefined,
-					undefined,
+					baseUrlOverride,
+					apiKeyOverride,
 					strategyId,
 				);
 				const stats = statsByStrategy.get(strategyId)!;

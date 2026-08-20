@@ -41,6 +41,8 @@ export function activate(context: vscode.ExtensionContext) {
 					output.appendLine(message);
 				},
 				benchmarkConfig.nextEditSuggestions.model || benchmarkConfig.llmServer.model,
+				benchmarkConfig.nextEditSuggestions.baseUrl || benchmarkConfig.llmServer.baseUrl,
+				benchmarkConfig.nextEditSuggestions.apiKey || benchmarkConfig.llmServer.apiKey,
 			);
 			output.appendLine('');
 			output.appendLine(summarizeBenchmarkResults(results, modelName));
