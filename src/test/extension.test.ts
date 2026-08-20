@@ -34,7 +34,7 @@ suite('next-edit strategies', () => {
 	});
 
 	test('aborts slow completions requests at the HTTP layer', async () => {
-		const provider = new LlamaCppProvider('http://example.test', '', '', () => undefined);
+		const provider = new LlamaCppProvider('http://example.test', '', () => undefined);
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = async (_input, init) => new Promise<Response>((resolve, reject) => {
 			const signal = init?.signal;
@@ -48,7 +48,7 @@ suite('next-edit strategies', () => {
 			}, 50);
 		});
 		try {
-			await assert.rejects(() => provider.completions('prompt', { maxTokens: 128, timeoutMs: 1 }), /AbortError|aborted/i);
+			await assert.rejects(() => provider.completions('prompt', { maxTokens: 128, model: 'test-model', baseUrl: 'http://example.test', apiKey: '', timeoutMs: 1 }), /AbortError|aborted/i);
 		} finally {
 			globalThis.fetch = originalFetch;
 		}
@@ -80,7 +80,7 @@ suite('next-edit strategies', () => {
 		const request = NEXT_EDIT_STRATEGIES.manta.buildRequest({
 			document: doc,
 			recentEdit: { diff: '@@ -3,1 +3,1 @@\n-const handler = register();\n+const handler = registerHandler();', changedLineRanges: [{ start: 2, end: 2 }] },
-			options: { maxTokens: 128 },
+			options: { maxTokens: 128, model: 'test-model', baseUrl: 'http://example.test', apiKey: 'test-key' },
 		});
 		assert.strictEqual(request.mode, 'completions');
 		assert.ok(request.prompt);
