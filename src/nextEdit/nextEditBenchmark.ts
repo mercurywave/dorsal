@@ -138,8 +138,8 @@ export function summarizeBenchmarkResults(results: NextEditBenchmarkResult[]): s
 		avgMs: `${result.averageMs.toFixed(1)} ms`,
 		complete: `${result.completeCount}/${result.attempts} (${result.completeRate.toFixed(0)}%)`,
 		parseable: `${result.parseableCount}/${result.attempts} (${result.parseableRate.toFixed(0)}%)`,
-		lineNumberOk: `${result.lineNumberOkCount}/${result.attempts} (${result.lineNumberOkRate.toFixed(0)}%)`,
 		suggested: `${result.suggestedCount}/${result.attempts} (${result.suggestedRate.toFixed(0)}%)`,
+		lineNumberOk: `${result.lineNumberOkCount}/${result.attempts} (${result.lineNumberOkRate.toFixed(0)}%)`,
 		valid: `${result.validSuggestionCount}/${result.attempts} (${result.validSuggestionRate.toFixed(0)}%)`,
 	}));
 
@@ -147,17 +147,17 @@ export function summarizeBenchmarkResults(results: NextEditBenchmarkResult[]): s
 	const avgWidth = Math.max(...rows.map((row) => row.avgMs.length), 'avg ms'.length);
 	const completeWidth = Math.max(...rows.map((row) => row.complete.length), 'complete'.length);
 	const parseableWidth = Math.max(...rows.map((row) => row.parseable.length), 'parseable'.length);
-	const lineNumberOkWidth = Math.max(...rows.map((row) => row.lineNumberOk.length), 'line # ok'.length);
 	const suggestedWidth = Math.max(...rows.map((row) => row.suggested.length), 'suggested'.length);
+	const lineNumberOkWidth = Math.max(...rows.map((row) => row.lineNumberOk.length), 'line # ok'.length);
 	const validWidth = Math.max(...rows.map((row) => row.valid.length), 'valid'.length);
 
-	const line = (strategy: string, avgMs: string, complete: string, parseable: string, lineNumberOk: string, suggested: string, valid: string): string => {
-		return `${strategy.padEnd(strategyWidth)}  ${avgMs.padEnd(avgWidth)}  ${complete.padEnd(completeWidth)}  ${parseable.padEnd(parseableWidth)}  ${lineNumberOk.padEnd(lineNumberOkWidth)}  ${suggested.padEnd(suggestedWidth)}  ${valid.padEnd(validWidth)}`;
+	const line = (strategy: string, avgMs: string, complete: string, parseable: string, suggested: string, lineNumberOk: string, valid: string): string => {
+		return `${strategy.padEnd(strategyWidth)}  ${avgMs.padEnd(avgWidth)}  ${complete.padEnd(completeWidth)}  ${parseable.padEnd(parseableWidth)}  ${suggested.padEnd(suggestedWidth)}  ${lineNumberOk.padEnd(lineNumberOkWidth)}  ${valid.padEnd(validWidth)}`;
 	};
 
-	const header = line('strategy', 'avg ms', 'complete', 'parseable', 'line # ok', 'suggested', 'valid');
-	const separator = line('-'.repeat(strategyWidth), '-'.repeat(avgWidth), '-'.repeat(completeWidth), '-'.repeat(parseableWidth), '-'.repeat(lineNumberOkWidth), '-'.repeat(suggestedWidth), '-'.repeat(validWidth));
-	const body = rows.map((row) => line(row.strategy, row.avgMs, row.complete, row.parseable, row.lineNumberOk, row.suggested, row.valid)).join('\n');
+	const header = line('strategy', 'avg ms', 'complete', 'parseable', 'suggested', 'line # ok', 'valid');
+	const separator = line('-'.repeat(strategyWidth), '-'.repeat(avgWidth), '-'.repeat(completeWidth), '-'.repeat(parseableWidth), '-'.repeat(suggestedWidth), '-'.repeat(lineNumberOkWidth), '-'.repeat(validWidth));
+	const body = rows.map((row) => line(row.strategy, row.avgMs, row.complete, row.parseable, row.suggested, row.lineNumberOk, row.valid)).join('\n');
 	return ['Next-edit strategy benchmark summary:', header, separator, body].join('\n');
 }
 
@@ -172,23 +172,37 @@ export async function runNextEditBenchmark(
 ): Promise<NextEditBenchmarkResult[]> {
 	const service = new NextEditService(llmService, () => undefined);
 	const scenarios = getBenchmarkScenarios();
-	const results: NextEditBenchmarkResult[] = [];
+	const strategyIds = getStrategyOptions();
+	const statsByStrategy = new Map<string, {
+		totalMs: number;
+		completeCount: number;
+		parseableCount: number;
+		lineNumberOkCount: number;
+		suggestedCount: number;
+		validSuggestionCount: number;
+		errorCount: number;
+		attempts: number;
+	}>();
 
-	for (const strategyId of getStrategyOptions()) {
-		let totalMs = 0;
-		let completeCount = 0;
-		let parseableCount = 0;
-		let lineNumberOkCount = 0;
-		let suggestedCount = 0;
-		let validSuggestionCount = 0;
-		let errorCount = 0;
-		const totalRuns = scenarios.length * attempts;
+	for (const strategyId of strategyIds) {
+		statsByStrategy.set(strategyId, {
+			totalMs: 0,
+			completeCount: 0,
+			parseableCount: 0,
+			lineNumberOkCount: 0,
+			suggestedCount: 0,
+			validSuggestionCount: 0,
+			errorCount: 0,
+			attempts: 0,
+		});
+	}
 
-		progress(`Benchmarking ${strategyId} (${scenarios.length} scenarios x ${attempts} runs)...`);
+	for (let attemptIndex = 0; attemptIndex < attempts; attemptIndex++) {
+		progress(`Benchmark round ${attemptIndex + 1}/${attempts}...`);
 		for (const scenario of scenarios) {
 			progress(`  scenario ${scenario.name}...`);
 			const document = await buildBenchmarkDocument(scenario);
-			for (let index = 0; index < attempts; index++) {
+			for (const strategyId of strategyIds) {
 				const evaluation = await service.evaluateStrategy(
 					document,
 					4096,
@@ -199,48 +213,51 @@ export async function runNextEditBenchmark(
 					undefined,
 					strategyId,
 				);
-				totalMs += evaluation.elapsedMs;
+				const stats = statsByStrategy.get(strategyId)!;
+				stats.attempts += 1;
+				stats.totalMs += evaluation.elapsedMs;
 				if (!evaluation.error) {
-					completeCount++;
+					stats.completeCount++;
 				}
 				if (evaluation.parseable) {
-					parseableCount++;
+					stats.parseableCount++;
 				}
 				if (evaluation.suggestion !== undefined) {
-					suggestedCount++;
+					stats.suggestedCount++;
 				}
 				if (evaluation.lineNumberOk) {
-					lineNumberOkCount++;
+					stats.lineNumberOkCount++;
 				}
 				if (evaluation.validSuggestion) {
-					validSuggestionCount++;
+					stats.validSuggestionCount++;
 				}
 				if (evaluation.error) {
-					errorCount++;
+					stats.errorCount++;
 				}
 			}
 		}
-
-		results.push({
-			strategy: strategyId,
-			attempts: totalRuns,
-			averageMs: totalRuns === 0 ? 0 : totalMs / totalRuns,
-			completeRate: totalRuns === 0 ? 0 : (completeCount / totalRuns) * 100,
-			parseableRate: totalRuns === 0 ? 0 : (parseableCount / totalRuns) * 100,
-			lineNumberOkRate: totalRuns === 0 ? 0 : (lineNumberOkCount / totalRuns) * 100,
-			suggestedRate: totalRuns === 0 ? 0 : (suggestedCount / totalRuns) * 100,
-			validSuggestionRate: totalRuns === 0 ? 0 : (validSuggestionCount / totalRuns) * 100,
-			completeCount,
-			parseableCount,
-			lineNumberOkCount,
-			suggestedCount,
-			validSuggestionCount,
-			errorCount,
-		});
-		progress(`Finished ${strategyId}: ${completeCount}/${totalRuns} complete, ${parseableCount}/${totalRuns} parseable, ${lineNumberOkCount}/${totalRuns} line # ok, ${suggestedCount}/${totalRuns} suggested, ${validSuggestionCount}/${totalRuns} valid, ${errorCount}/${totalRuns} errors`);
 	}
 
-	return results;
+	const totalRuns = scenarios.length * attempts;
+	return strategyIds.map((strategyId) => {
+		const stats = statsByStrategy.get(strategyId)!;
+		return {
+			strategy: strategyId,
+			attempts: stats.attempts,
+			averageMs: stats.attempts === 0 ? 0 : stats.totalMs / stats.attempts,
+			completeRate: stats.attempts === 0 ? 0 : (stats.completeCount / stats.attempts) * 100,
+			parseableRate: stats.attempts === 0 ? 0 : (stats.parseableCount / stats.attempts) * 100,
+			lineNumberOkRate: stats.attempts === 0 ? 0 : (stats.lineNumberOkCount / stats.attempts) * 100,
+			suggestedRate: stats.attempts === 0 ? 0 : (stats.suggestedCount / stats.attempts) * 100,
+			validSuggestionRate: stats.attempts === 0 ? 0 : (stats.validSuggestionCount / stats.attempts) * 100,
+			completeCount: stats.completeCount,
+			parseableCount: stats.parseableCount,
+			lineNumberOkCount: stats.lineNumberOkCount,
+			suggestedCount: stats.suggestedCount,
+			validSuggestionCount: stats.validSuggestionCount,
+			errorCount: stats.errorCount,
+		};
+	});
 }
 
 export async function buildBenchmarkDocument(scenario: NextEditBenchmarkScenario): Promise<vscode.TextDocument> {
