@@ -170,6 +170,19 @@ export async function runNextEditBenchmark(
 	attempts: number = 3,
 	progress: (message: string) => void = () => undefined,
 ): Promise<NextEditBenchmarkResult[]> {
+	progress('Warming model up...');
+	try {
+		await llmService.chat(
+			[{ role: 'user', content: 'Reply with OK.' }],
+			{ maxTokens: 8, temperature: 0.1, timeoutMs: 15_000 },
+			'nextEdit',
+		);
+	} catch (error) {
+		const message = `Warm-up failed: ${error instanceof Error ? error.message : String(error)}`;
+		progress(message);
+		throw new Error(message);
+	}
+
 	const service = new NextEditService(llmService, () => undefined);
 	const scenarios = getBenchmarkScenarios();
 	const strategyIds = getStrategyOptions();
