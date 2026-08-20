@@ -134,10 +134,10 @@ const CLOWNFISH_SYSTEM_PROMPT = 'You are a code editing assistant. Given a file 
 	+ 'diff showing the developer\'s recent changes, propose exactly one small follow-up edit elsewhere in the file that '
 	+ 'keeps the code consistent (e.g. a matching usage, an import, or a related declaration). '
 	+ 'Do not target the lines in the developer\'s recent diff itself; those were just edited and are not valid follow-up targets. '
-	+ 'Respond using EXACTLY this format and nothing else, with no markdown fences:\n'
-	+ '<EDIT><START_LINE>n</START_LINE><END_LINE>n</END_LINE><REPLACEMENT>\ncode\n</REPLACEMENT></EDIT>\n'
+	+ 'Respond using EXACTLY this XML format and nothing else, with no markdown fences:\n'
+	+ '<EDIT><START_LINE>n</START_LINE><END_LINE>n</END_LINE><REPLACEMENT>code</REPLACEMENT></EDIT>\n'
 	+ 'START_LINE and END_LINE are 1-based and inclusive, referring to the numbered lines shown to you. '
-	+ 'REPLACEMENT is the full text that should replace those lines. '
+	+ 'Code inside REPLACEMENT is the full text that should replace those lines. '
 	+ 'If no follow-up edit is needed, respond with exactly: NONE';
 
 const TANG_SYSTEM_PROMPT = 'Return exactly one precise follow-up edit in JSON using the numbered file in the user prompt as the source of truth. '
@@ -146,7 +146,7 @@ const TANG_SYSTEM_PROMPT = 'Return exactly one precise follow-up edit in JSON us
 	+ 'The replacement must be the COMPLETE final text for the entire affected line(s), not a partial token, symbol, or fragment. '
 	+ 'Include the full indentation and all code text for the target line(s). '
 	+ 'If no edit is needed, return "NONE".';
-    
+
 const WRASSE_SYSTEM_PROMPT = 'Return only one minimal JSON object with startLine, endLine, and replacement for the exact edit to make. '
 	+ 'Use the numbered file contents as the source of truth; do not target the recent diff lines. '
 	+ 'The replacement must be the COMPLETE final text for the full target line(s), not a token, symbol, or partial fragment. '
