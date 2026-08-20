@@ -12,10 +12,10 @@ export interface NextEditStrategyArgs {
 	recentEdit?: RecentEditContextLike;
 	options: {
 		maxTokens: number;
-		model?: string;
+		model: string;
 		thinkingBudget?: number;
-		baseUrl?: string;
-		apiKey?: string;
+		baseUrl: string;
+		apiKey: string;
 	};
 }
 

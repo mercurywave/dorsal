@@ -26,7 +26,14 @@ export class LlmService {
 	}
 
 	private static buildProvider(config: DorsalConfig, log: (message: string) => void): LlmProvider {
-		return new LlamaCppProvider(config.llmServer.baseUrl, config.llmServer.apiKey, config.llmServer.model, log);
+		return new LlamaCppProvider(config.llmServer.baseUrl, config.llmServer.apiKey, log);
+	}
+
+	private static requireRequestOptions<T extends { baseUrl?: string; apiKey?: string; model?: string }>(options: T): T & { baseUrl: string; apiKey: string; model: string } {
+		if (typeof options.baseUrl !== 'string' || typeof options.apiKey !== 'string' || typeof options.model !== 'string') {
+			throw new Error('LLM request options must include explicit baseUrl, apiKey, and model settings.');
+		}
+		return options as T & { baseUrl: string; apiKey: string; model: string };
 	}
 
 	reload(config: DorsalConfig): void {
@@ -42,8 +49,9 @@ export class LlmService {
 	}
 
 	async infill(prefix: string, suffix: string, options: InfillOptions, workflow: Workflow): Promise<string> {
+		const requestOptions = LlmService.requireRequestOptions(options);
 		try {
-			const result = await this.provider.infill(prefix, suffix, options);
+			const result = await this.provider.infill(prefix, suffix, requestOptions);
 			this.statusEmitter.fire({ workflow, status: 'success' });
 			return result;
 		} catch (err) {
@@ -54,12 +62,13 @@ export class LlmService {
 	}
 
 	async chat(messages: ChatMessage[], options: ChatOptions, workflow: Workflow): Promise<string> {
+		const requestOptions = LlmService.requireRequestOptions(options);
 		const requestId = ++this.chatRequestId;
 		if (workflow !== 'completions') {
 			this.verboseLog(`[chat ${requestId}] ${workflow} request messages:\n${JSON.stringify(messages, null, 2)}`);
 		}
 		try {
-			const result = await this.provider.chat(messages, options);
+			const result = await this.provider.chat(messages, requestOptions);
 			if (workflow !== 'completions') {
 				this.verboseLog(`[chat ${requestId}] ${workflow} response:\n${result}`);
 			}
@@ -73,8 +82,9 @@ export class LlmService {
 	}
 
 	async completions(prompt: string, options: CompletionOptions, workflow: Workflow): Promise<string> {
+		const requestOptions = LlmService.requireRequestOptions(options);
 		try {
-			const result = await this.provider.completions(prompt, options);
+			const result = await this.provider.completions(prompt, requestOptions);
 			this.statusEmitter.fire({ workflow, status: 'success' });
 			return result;
 		} catch (err) {

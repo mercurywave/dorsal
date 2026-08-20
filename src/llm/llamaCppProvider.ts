@@ -28,7 +28,6 @@ export class LlamaCppProvider implements LlmProvider {
 	constructor(
 		private readonly baseUrl: string,
 		private readonly apiKey: string,
-		private readonly model: string,
 		private readonly log: (message: string) => void,
 	) {}
 
@@ -41,8 +40,8 @@ export class LlamaCppProvider implements LlmProvider {
 	}
 
 	async infill(prefix: string, suffix: string, options: InfillOptions): Promise<string> {
-		const baseUrl = options.baseUrl || this.baseUrl;
-		const apiKey = options.apiKey || this.apiKey;
+		const baseUrl = options.baseUrl;
+		const apiKey = options.apiKey;
 		const timeoutMs = options.timeoutMs ?? 15_000;
 		const res = await fetchJson(`${baseUrl}/infill`, {
 			method: 'POST',
@@ -53,7 +52,7 @@ export class LlamaCppProvider implements LlmProvider {
 				n_predict: options.maxTokens,
 				temperature: options.temperature ?? 0.2,
 				stop: options.stop,
-				...((options.model || this.model) ? { model: options.model || this.model } : {}),
+				...(options.model ? { model: options.model } : {}),
 			}),
 		}, timeoutMs);
 		if (!res.ok) {
@@ -64,8 +63,8 @@ export class LlamaCppProvider implements LlmProvider {
 	}
 
 	async chat(messages: ChatMessage[], options: ChatOptions): Promise<string> {
-		const baseUrl = options.baseUrl || this.baseUrl;
-		const apiKey = options.apiKey || this.apiKey;
+		const baseUrl = options.baseUrl;
+		const apiKey = options.apiKey;
 		const timeoutMs = options.timeoutMs ?? 60_000;
 		const res = await fetchJson(`${baseUrl}/v1/chat/completions`, {
 			method: 'POST',
@@ -76,7 +75,7 @@ export class LlamaCppProvider implements LlmProvider {
 				temperature: options.temperature ?? 0.2,
 				stop: options.stop,
 				...(options.thinkingBudget !== undefined ? { reasoning_budget: options.thinkingBudget, thinking_budget_tokens: options.thinkingBudget } : {}),
-				...((options.model || this.model) ? { model: options.model || this.model } : {}),
+				...(options.model ? { model: options.model } : {}),
 			}),
 		}, timeoutMs);
 		if (!res.ok) {
@@ -87,8 +86,8 @@ export class LlamaCppProvider implements LlmProvider {
 	}
 
 	async completions(prompt: string, options: CompletionOptions): Promise<string> {
-		const baseUrl = options.baseUrl || this.baseUrl;
-		const apiKey = options.apiKey || this.apiKey;
+		const baseUrl = options.baseUrl;
+		const apiKey = options.apiKey;
 		const maxTokens = capCompletionMaxTokens(options.maxTokens);
 		const timeoutMs = options.timeoutMs ?? 60_000;
 		const res = await fetchJson(`${baseUrl}/v1/completions`, {
@@ -99,7 +98,7 @@ export class LlamaCppProvider implements LlmProvider {
 				max_tokens: maxTokens,
 				temperature: options.temperature ?? 0.2,
 				stop: options.stop,
-				...((options.model || this.model) ? { model: options.model || this.model } : {}),
+				...(options.model ? { model: options.model } : {}),
 			}),
 		}, timeoutMs);
 		if (!res.ok) {

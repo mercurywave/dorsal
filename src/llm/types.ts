@@ -1,10 +1,10 @@
 export interface InfillOptions {
 	maxTokens: number;
-	model?: string;
+	model: string;
 	stop?: string[];
 	temperature?: number;
-	baseUrl?: string;
-	apiKey?: string;
+	baseUrl: string;
+	apiKey: string;
 	timeoutMs?: number;
 }
 
@@ -15,23 +15,23 @@ export interface ChatMessage {
 
 export interface ChatOptions {
 	maxTokens: number;
-	model?: string;
+	model: string;
 	stop?: string[];
 	temperature?: number;
 	// Caps reasoning/thinking tokens for models that support extended thinking.
 	thinkingBudget?: number;
-	baseUrl?: string;
-	apiKey?: string;
+	baseUrl: string;
+	apiKey: string;
 	timeoutMs?: number;
 }
 
 export interface CompletionOptions {
 	maxTokens: number;
-	model?: string;
+	model: string;
 	stop?: string[];
 	temperature?: number;
-	baseUrl?: string;
-	apiKey?: string;
+	baseUrl: string;
+	apiKey: string;
 	timeoutMs?: number;
 }
 

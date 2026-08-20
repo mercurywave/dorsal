@@ -55,9 +55,9 @@ export class NextEditService {
 		maxTokens: number,
 		model: string,
 		thinkingBudget: number,
-		recentEdit?: RecentEditContext,
-		baseUrl?: string,
-		apiKey?: string,
+		recentEdit: RecentEditContext | undefined,
+		baseUrl: string,
+		apiKey: string,
 		strategyId: string = 'clownfish',
 	): Promise<StrategyEvaluationResult> {
 		const strategy = resolveNextEditStrategy(strategyId);
@@ -114,9 +114,9 @@ export class NextEditService {
 		maxTokens: number,
 		model: string,
 		thinkingBudget: number,
-		recentEdit?: RecentEditContext,
-		baseUrl?: string,
-		apiKey?: string,
+		recentEdit: RecentEditContext | undefined,
+		baseUrl: string,
+		apiKey: string,
 		strategyId: string = 'clownfish',
 	): Promise<NextEditSuggestion | undefined> {
 		return (await this.evaluateStrategy(
