@@ -56,14 +56,13 @@ export class NextEditService {
 		recentEdit?: RecentEditContext,
 		baseUrl?: string,
 		apiKey?: string,
-		useInfillApi: boolean = true,
 		strategyId: string = 'clownfish',
 	): Promise<StrategyEvaluationResult> {
 		const strategy = resolveNextEditStrategy(strategyId);
 		const strategyRequest = strategy.buildRequest({
 			document,
 			recentEdit,
-			options: { maxTokens, model, thinkingBudget, baseUrl, apiKey, useInfillApi },
+			options: { maxTokens, model, thinkingBudget, baseUrl, apiKey },
 		});
 		const startedAt = Date.now();
 
@@ -73,13 +72,6 @@ export class NextEditService {
 				response = await this.llmService.chat(
 					strategyRequest.messages,
 					{ maxTokens, model, thinkingBudget, baseUrl, apiKey, timeoutMs: NEXT_EDIT_TIMEOUT_MS },
-					'nextEdit',
-				);
-			} else if (strategyRequest.mode === 'infill' && strategyRequest.prefix !== undefined && strategyRequest.suffix !== undefined) {
-				response = await this.llmService.infill(
-					strategyRequest.prefix,
-					strategyRequest.suffix,
-					{ maxTokens, model, baseUrl, apiKey, timeoutMs: NEXT_EDIT_TIMEOUT_MS },
 					'nextEdit',
 				);
 			} else if (strategyRequest.mode === 'completions' && strategyRequest.prompt !== undefined) {
@@ -120,7 +112,6 @@ export class NextEditService {
 		recentEdit?: RecentEditContext,
 		baseUrl?: string,
 		apiKey?: string,
-		useInfillApi: boolean = true,
 		strategyId: string = 'clownfish',
 	): Promise<NextEditSuggestion | undefined> {
 		return (await this.evaluateStrategy(
@@ -131,7 +122,6 @@ export class NextEditService {
 			recentEdit,
 			baseUrl,
 			apiKey,
-			useInfillApi,
 			strategyId,
 		)).suggestion;
 	}

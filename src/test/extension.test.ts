@@ -17,25 +17,14 @@ suite('Extension Test Suite', () => {
 });
 
 suite('next-edit strategies', () => {
-	test('includes the coral reef strategy set', () => {
+	test('keeps next-edit focused on chat-based strategies', () => {
 		assert.ok(NEXT_EDIT_STRATEGIES.clownfish);
 		assert.ok(NEXT_EDIT_STRATEGIES.tang);
-		assert.ok(NEXT_EDIT_STRATEGIES.manta);
-		assert.ok(NEXT_EDIT_STRATEGIES.parrotfish);
-		assert.ok(NEXT_EDIT_STRATEGIES.butterflyfish);
-		assert.ok(NEXT_EDIT_STRATEGIES.damselfish);
 		assert.ok(NEXT_EDIT_STRATEGIES.wrasse);
-	});
-
-	test('switches FIM strategies to completions when infill is unavailable', async () => {
-		const document = await vscode.workspace.openTextDocument({ content: 'const value = 1;\nconsole.log(value);', language: 'plaintext' });
-		const request = NEXT_EDIT_STRATEGIES.manta.buildRequest({
-			document,
-			recentEdit: { diff: '@@ -1,1 +1,1 @@\n-const value = 1;\n+const count = 1;', changedLineRanges: [{ start: 0, end: 0 }] },
-			options: { maxTokens: 128, useInfillApi: false },
-		});
-		assert.strictEqual(request.mode, 'completions');
-		assert.ok(request.prompt?.includes('<|fim_middle|>'));
+		assert.strictEqual('manta' in NEXT_EDIT_STRATEGIES, false);
+		assert.strictEqual('parrotfish' in NEXT_EDIT_STRATEGIES, false);
+		assert.strictEqual('butterflyfish' in NEXT_EDIT_STRATEGIES, false);
+		assert.strictEqual('damselfish' in NEXT_EDIT_STRATEGIES, false);
 	});
 
 	test('caps completions output to a safe token budget', () => {

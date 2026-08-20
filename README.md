@@ -37,8 +37,8 @@ base URL, API key, and model; leave an override empty to use the default:
   `dorsal.completions.model` / `dorsal.completions.baseUrl` / `dorsal.completions.apiKey` -
   tab completion behavior.
 * `dorsal.nextEditSuggestions.enabled` / `dorsal.nextEditSuggestions.autoTrigger` /
-  `dorsal.nextEditSuggestions.useInfillApi` / `dorsal.nextEditSuggestions.maxTokens` /
-  `dorsal.nextEditSuggestions.model` / `dorsal.nextEditSuggestions.baseUrl` / `dorsal.nextEditSuggestions.apiKey` -
+  `dorsal.nextEditSuggestions.maxTokens` / `dorsal.nextEditSuggestions.model` /
+  `dorsal.nextEditSuggestions.baseUrl` / `dorsal.nextEditSuggestions.apiKey` -
   next edit suggestion behavior.
 * `dorsal.inlineEdit.maxTokens` / `dorsal.inlineEdit.model` / `dorsal.inlineEdit.baseUrl` / `dorsal.inlineEdit.apiKey` -
   response size, model, and server overrides for `Ctrl+I` inline edits.
@@ -55,7 +55,6 @@ base URL, API key, and model; leave an override empty to use the default:
 
 * Next edit suggestions rely on the model returning a strict, parseable format;
   malformed responses are silently skipped rather than shown.
-* `useInfillApi` is enabled by default for completions and next-edit suggestions.
-  Disable it for models without llama.cpp's `/infill` endpoint; Dorsal will use
-  the OpenAI-compatible `/v1/chat/completions` endpoint instead.
+* Infill is only used for inline tab completions; next-edit suggestions intentionally
+  use chat-style prompting only, since the target location is not known ahead of time.
 

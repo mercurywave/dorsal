@@ -16,16 +16,13 @@ export interface NextEditStrategyArgs {
 		thinkingBudget?: number;
 		baseUrl?: string;
 		apiKey?: string;
-		useInfillApi?: boolean;
 	};
 }
 
 export interface NextEditStrategyRequest {
-	mode: 'chat' | 'infill' | 'completions';
+	mode: 'chat' | 'completions';
 	messages?: ChatMessage[];
 	prompt?: string;
-	prefix?: string;
-	suffix?: string;
 	targetRange?: vscode.Range;
 }
 
@@ -64,34 +61,6 @@ export const NEXT_EDIT_STRATEGIES: Record<string, NextEditStrategyDefinition> = 
 		}),
 		parse: (response: string, document: vscode.TextDocument): NextEditSuggestion | undefined => parseJsonLikeSuggestion(response, document) ?? parseSuggestion(response, document),
 	},
-	manta: {
-		id: 'manta',
-		label: 'Manta',
-		description: 'Targeted FIM request that can be sent through either the infill endpoint or a completion-style prefix/suffix prompt.',
-		buildRequest: ({ document, recentEdit, options }: NextEditStrategyArgs): NextEditStrategyRequest => buildFIMRequest(document, recentEdit, options.useInfillApi ?? true, 'manta'),
-		parse: (response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined => parseFIMResponse(response, document, targetRange),
-	},
-	parrotfish: {
-		id: 'parrotfish',
-		label: 'Parrotfish',
-		description: 'Llama/FIM format using <|fim_prefix|> / <|fim_suffix|> / <|fim_middle|> markers.',
-		buildRequest: ({ document, recentEdit, options }: NextEditStrategyArgs): NextEditStrategyRequest => buildFIMRequest(document, recentEdit, options.useInfillApi ?? true, 'parrotfish'),
-		parse: (response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined => parseFIMResponse(response, document, targetRange),
-	},
-	butterflyfish: {
-		id: 'butterflyfish',
-		label: 'Butterflyfish',
-		description: 'Extended FIM format using <|fim▁begin|> / <|fim▁hole|> / <|fim▁end|> markers.',
-		buildRequest: ({ document, recentEdit, options }: NextEditStrategyArgs): NextEditStrategyRequest => buildFIMRequest(document, recentEdit, options.useInfillApi ?? true, 'butterflyfish'),
-		parse: (response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined => parseFIMResponse(response, document, targetRange),
-	},
-	damselfish: {
-		id: 'damselfish',
-		label: 'Damselfish',
-		description: 'Compact FIM instructions using <PRE> / <SUF> / <MID> tags.',
-		buildRequest: ({ document, recentEdit, options }: NextEditStrategyArgs): NextEditStrategyRequest => buildFIMRequest(document, recentEdit, options.useInfillApi ?? true, 'damselfish'),
-		parse: (response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined => parseFIMResponse(response, document, targetRange),
-	},
 	wrasse: {
 		id: 'wrasse',
 		label: 'Wrasse',
@@ -114,36 +83,6 @@ export function resolveNextEditStrategy(id?: string): NextEditStrategyDefinition
 	return NEXT_EDIT_STRATEGIES[key] ?? NEXT_EDIT_STRATEGIES.clownfish;
 }
 
-function buildFIMRequest(document: vscode.TextDocument, recentEdit: RecentEditContextLike | undefined, useInfillApi: boolean, variant: string): NextEditStrategyRequest {
-	const { range, prefix, suffix } = buildFIMRange(document, recentEdit);
-	if (useInfillApi) {
-		switch (variant) {
-			case 'parrotfish':
-				return { mode: 'infill', targetRange: range, prefix: `${prefix}<|fim_prefix|>`, suffix: `<|fim_suffix|>${suffix}<|fim_middle|>` };
-			case 'butterflyfish':
-				return { mode: 'infill', targetRange: range, prefix: `${prefix}<|fim▁begin|>`, suffix: `<|fim▁hole|>${suffix}<|fim▁end|>` };
-			case 'damselfish':
-				return { mode: 'infill', targetRange: range, prefix: `${prefix} <PRE> ${prefix}`, suffix: ` <SUF>${suffix} <MID>` };
-			default:
-				return { mode: 'infill', targetRange: range, prefix, suffix };
-		}
-	}
-
-	const prompt = (() => {
-		switch (variant) {
-			case 'parrotfish':
-				return `${prefix}<|fim_prefix|>${suffix}<|fim_middle|>`;
-			case 'butterflyfish':
-				return `${prefix}<|fim▁begin|>${suffix}<|fim▁end|>`;
-			case 'damselfish':
-				return `${prefix} <PRE> ${prefix}${suffix} <MID>`;
-			default:
-				return `${prefix}<|fim_middle|>${suffix}`;
-		}
-	})();
-	return { mode: 'completions', targetRange: range, prompt };
-}
-
 function buildUserPrompt(document: vscode.TextDocument, recentEdit?: RecentEditContextLike): string {
 	const numberedLines: string[] = [];
 	for (let i = 0; i < document.lineCount; i++) {
@@ -153,19 +92,6 @@ function buildUserPrompt(document: vscode.TextDocument, recentEdit?: RecentEditC
 		? `The developer's recent changes are:\n${recentEdit.diff}`
 		: 'There is no recent automatic edit diff; infer useful consistency changes from the current file.';
 	return `File:\n${numberedLines.join('\n')}\n\n${editPrompt}`;
-}
-
-function buildFIMRange(document: vscode.TextDocument, recentEdit?: RecentEditContextLike): { range: vscode.Range; prefix: string; suffix: string } {
-	const changedRange = recentEdit?.changedLineRanges?.[0];
-	const preferredStart = changedRange ? changedRange.start : Math.max(0, Math.floor(document.lineCount / 2) - 1);
-	const preferredEnd = changedRange ? changedRange.end : Math.min(document.lineCount - 1, preferredStart + 1);
-	const startLine = Math.max(0, Math.min(preferredStart, document.lineCount - 1));
-	const endLine = Math.max(startLine, Math.min(preferredEnd, document.lineCount - 1));
-	const range = new vscode.Range(startLine, 0, endLine, document.lineAt(endLine).text.length);
-	const fullText = document.getText();
-	const prefix = fullText.slice(0, document.offsetAt(new vscode.Position(startLine, 0)));
-	const suffix = fullText.slice(document.offsetAt(new vscode.Position(endLine, document.lineAt(endLine).text.length)));
-	return { range, prefix, suffix };
 }
 
 function parseJsonLikeSuggestion(response: string, document: vscode.TextDocument): NextEditSuggestion | undefined {
@@ -193,27 +119,6 @@ function parseJsonLikeSuggestion(response: string, document: vscode.TextDocument
 	} catch {
 		return undefined;
 	}
-}
-
-function parseFIMResponse(response: string, document: vscode.TextDocument, targetRange?: vscode.Range): NextEditSuggestion | undefined {
-	const cleaned = stripFIMMarkers(response);
-	if (!cleaned || cleaned === 'NONE') {
-		return undefined;
-	}
-	const range = targetRange ?? new vscode.Range(0, 0, Math.min(document.lineCount - 1, 0), document.lineAt(0).text.length);
-	const replacementText = normalizeLineEndings(cleaned, document.eol);
-	const original = document.getText(range);
-	if (normalizeWhitespace(original) === normalizeWhitespace(replacementText)) {
-		return undefined;
-	}
-	return { range, replacementText };
-}
-
-function stripFIMMarkers(value: string): string {
-	let cleaned = value.replace(/<\|fim[_\s]?(prefix|suffix|middle|begin|hole|end)\|>/gi, '');
-	cleaned = cleaned.replace(/<PRE>|<SUF>|<MID>/gi, '');
-	cleaned = cleaned.replace(/^[\s\r\n]+|[\s\r\n]+$/g, '');
-	return cleaned;
 }
 
 function normalizeWhitespace(text: string): string {

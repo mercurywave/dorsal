@@ -193,37 +193,27 @@
             "order": 5,
             "description": "Maximum reasoning/thinking tokens for next-edit suggestions, for models that support extended thinking."
           },
-          "dorsal.nextEditSuggestions.useInfillApi": {
-            "type": "boolean",
-            "default": true,
-            "order": 6,
-            "description": "Use the server's infill API for FIM-style next-edit strategies. Disable to send prefix/suffix requests through the OpenAI-compatible completions API instead."
-          },
           "dorsal.nextEditSuggestions.strategy": {
             "type": "string",
             "enum": [
               "clownfish",
               "tang",
-              "manta",
-              "parrotfish",
-              "butterflyfish",
-              "damselfish",
               "wrasse"
             ],
             "default": "clownfish",
-            "order": 7,
-            "description": "Output strategy for next-edit suggestions. Try different fish names to optimize for small or FIM-friendly models."
+            "order": 6,
+            "description": "Output strategy for next-edit suggestions. These strategies use normal chat-style prompting for edit inference."
           },
           "dorsal.nextEditSuggestions.baseUrl": {
             "type": "string",
             "default": "",
-            "order": 8,
+            "order": 7,
             "description": "Optional server base URL override for next-edit suggestions. Leave empty to use the default LLM server."
           },
           "dorsal.nextEditSuggestions.apiKey": {
             "type": "string",
             "default": "",
-            "order": 9,
+            "order": 8,
             "description": "Optional API key override for next-edit suggestions. Leave empty to use the default API key."
           }
         }

@@ -54,11 +54,11 @@ export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 			].join('\n'),
 			[
 				'const userDisplayName = "alice";',
-				'const display = userDisplayName.toUpperCase();',
+				'const display = userName.toUpperCase();',
 				'console.log(display);',
 				'',
 				'function render() {',
-				'  return userDisplayName;',
+				'  return userName;',
 				'}',
 			].join('\n'),
 		),
@@ -71,7 +71,7 @@ export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 				'handler.run();',
 			].join('\n'),
 			[
-				'import { registerHandler } from "./registry";',
+				'import { register } from "./registry";',
 				'',
 				'const handler = registerHandler();',
 				'handler.run();',
@@ -88,8 +88,8 @@ export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 			[
 				'type User = { id: number; displayName: string };',
 				'',
-				'const user: User = { id: 1, displayName: "alice" };',
-				'console.log(user.displayName);',
+				'const user: User = { id: 1, name: "alice" };',
+				'console.log(user.name);',
 			].join('\n'),
 		),
 		makeScenario(
@@ -102,7 +102,7 @@ export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 			[
 				'const items = [1, 2, 3];',
 				'const doubled = items.map((item) => item * 2);',
-				'const total = doubled.reduce((sum, item) => sum + item, 0);',
+				'const total = doubled.reduce((sum, value) => sum + value, 0);',
 			].join('\n'),
 		),
 		makeScenario(
@@ -120,7 +120,7 @@ export function getBenchmarkScenarios(): NextEditBenchmarkScenario[] {
 				'  return 42;',
 				'}',
 				'',
-				'const value = resolveValue();',
+				'const value = getValue();',
 				'console.log(value);',
 			].join('\n'),
 		),
@@ -186,7 +186,6 @@ export async function runNextEditBenchmark(
 					scenario.recentEdit,
 					undefined,
 					undefined,
-					true,
 					strategyId,
 				);
 				totalMs += evaluation.elapsedMs;
