@@ -103,10 +103,10 @@ export class InlineEditController implements vscode.Disposable {
 					],
 					{
 						maxTokens: config.inlineEdit.maxTokens,
-						model: config.inlineEdit.model,
+						model: config.inlineEdit.model || config.llmServer.model,
 						thinkingBudget: config.inlineEdit.thinkingBudget,
-						baseUrl: config.inlineEdit.baseUrl,
-						apiKey: config.inlineEdit.apiKey,
+						baseUrl: config.inlineEdit.baseUrl || config.llmServer.baseUrl,
+						apiKey: config.inlineEdit.apiKey || config.llmServer.apiKey,
 					},
 					'inlineEdit',
 				),

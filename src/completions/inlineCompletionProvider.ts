@@ -44,17 +44,17 @@ export class DorsalInlineCompletionProvider implements vscode.InlineCompletionIt
 			completion = config.completions.useInfillApi
 				? await this.llmService.infill(prefix, suffix, {
 					maxTokens: config.completions.maxTokens,
-					model: config.completions.model,
+					model: config.completions.model || config.llmServer.model,
 					stop: ['\n\n'],
-					baseUrl: config.completions.baseUrl,
-					apiKey: config.completions.apiKey,
+					baseUrl: config.completions.baseUrl || config.llmServer.baseUrl,
+					apiKey: config.completions.apiKey || config.llmServer.apiKey,
 				}, 'completions')
 				: await this.llmService.chat(
 					[
 						{ role: 'system', content: CHAT_SYSTEM_PROMPT },
 						{ role: 'user', content: `Code before cursor:\n${prefix}\n\nCode after cursor:\n${suffix}\n\nText to insert:` },
 					],
-					{ maxTokens: config.completions.maxTokens, model: config.completions.model, stop: ['\n\n'], baseUrl: config.completions.baseUrl, apiKey: config.completions.apiKey },
+					{ maxTokens: config.completions.maxTokens, model: config.completions.model || config.llmServer.model, stop: ['\n\n'], baseUrl: config.completions.baseUrl || config.llmServer.baseUrl, apiKey: config.completions.apiKey || config.llmServer.apiKey },
 					'completions',
 				);
 		} catch (err) {

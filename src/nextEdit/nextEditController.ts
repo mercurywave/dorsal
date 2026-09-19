@@ -114,11 +114,11 @@ export class NextEditController implements vscode.Disposable {
 		const suggestion = await this.service.suggest(
 			editor.document,
 			config.nextEditSuggestions.maxTokens,
-			config.nextEditSuggestions.model,
+			config.nextEditSuggestions.model || config.llmServer.model,
 			config.nextEditSuggestions.thinkingBudget,
 			recentEdit,
-			config.nextEditSuggestions.baseUrl,
-			config.nextEditSuggestions.apiKey,
+			config.nextEditSuggestions.baseUrl || config.llmServer.baseUrl,
+			config.nextEditSuggestions.apiKey || config.llmServer.apiKey,
 			config.nextEditSuggestions.strategy,
 		);
 		if (!suggestion
