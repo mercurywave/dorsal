@@ -64,6 +64,18 @@ const pendingEditHighlightDecorationType = vscode.window.createTextEditorDecorat
 	opacity: '0.6',
 });
 
+// Ghost text shown at the end of the first line of the pending edit range,
+// displaying the user's instruction so they can see what they asked for.
+const pendingEditInstructionDecorationType = vscode.window.createTextEditorDecorationType({
+	isWholeLine: false,
+	after: {
+		color: new vscode.ThemeColor('editorInlayHint.foreground'),
+		backgroundColor: new vscode.ThemeColor('editorInlayHint.background'),
+		fontStyle: 'italic',
+		margin: '0 0 0 0.5em',
+	},
+});
+
 interface DiffOp {
 	kind: 'context' | 'removed' | 'added';
 	line: string;
@@ -231,6 +243,33 @@ export function renderPendingEditHighlight(editor: vscode.TextEditor, range: vsc
 
 export function clearPendingEditHighlight(editor: vscode.TextEditor): void {
 	editor.setDecorations(pendingEditHighlightDecorationType, []);
+	clearPendingEditInstruction(editor);
+}
+
+export function clearPendingEditInstruction(editor: vscode.TextEditor): void {
+	editor.setDecorations(pendingEditInstructionDecorationType, []);
+}
+
+// Shows the user's instruction as ghost text at the end of the first line of the edit range.
+// Only renders if the instruction fits on the line without overflowing the viewport.
+export function renderPendingEditInstruction(editor: vscode.TextEditor, range: vscode.Range, instruction: string): void {
+	// Truncate the instruction if it would overflow past the editor's visible column count.
+	const editorConfig = vscode.workspace.getConfiguration('editor', editor.document.uri);
+	const fontSize = editorConfig.get<number>('fontSize', 14);
+	const charWidth = fontSize * 0.6; // approximate character width
+	// Use the max column from visible ranges as the approximate viewport width in characters.
+	const maxColumn = editor.visibleRanges.reduce((max, r) => Math.max(max, r.end.character), 0);
+	const currentLineLength = editor.document.lineAt(range.start.line).text.length;
+	const availableChars = Math.max(0, maxColumn - currentLineLength - 4);
+	let displayText = instruction;
+	if (displayText.length > availableChars && availableChars > 0) {
+		displayText = displayText.slice(0, availableChars - 1) + '…';
+	}
+	const line = editor.document.lineAt(range.start.line);
+	editor.setDecorations(pendingEditInstructionDecorationType, [{
+		range: new vscode.Range(range.start.line, line.text.length, range.start.line, line.text.length),
+		renderOptions: { after: { contentText: ` — ${displayText}` } },
+	}]);
 }
 
 // Renders a "▲/▼ N lines away — Tab to jump" hint on the nearest visible edge line

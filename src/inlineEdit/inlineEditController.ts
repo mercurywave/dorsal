@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readConfig } from '../config';
 import { LlmService } from '../llm/llmService';
-import { clearPendingEditHighlight, clearSuggestionDecorations, renderPendingEditHighlight, renderSuggestion, SuggestionCodeLensProvider } from '../nextEdit/decorationRenderer';
+import { clearPendingEditHighlight, clearPendingEditInstruction, clearSuggestionDecorations, renderPendingEditHighlight, renderPendingEditInstruction, renderSuggestion, SuggestionCodeLensProvider } from '../nextEdit/decorationRenderer';
 
 const CONTEXT_KEY = 'dorsalInlineEditPreviewVisible';
 const CONTEXT_LINES = 20;
@@ -94,6 +94,8 @@ export class InlineEditController implements vscode.Disposable {
 
 		// Show a highlight on the selected range immediately so the user knows what will be edited.
 		renderPendingEditHighlight(editor, originalRange);
+		// Show the instruction as ghost text on the first line.
+		renderPendingEditInstruction(editor, originalRange, instruction);
 
 		const startLine = Math.max(0, range.start.line - CONTEXT_LINES);
 		const endLine = Math.min(editor.document.lineCount - 1, range.end.line + CONTEXT_LINES);
@@ -147,8 +149,9 @@ export class InlineEditController implements vscode.Disposable {
 		const finalReplacementText = hasSelection ? replacementText : keepFirstLineUnchanged(targetText, replacementText);
 
 		this.pending = { editor, range, replacementText: finalReplacementText };
-		// Replace the pending highlight with the diff decorations.
+		// Replace the pending highlight/instruction with the diff decorations.
 		clearPendingEditHighlight(editor);
+		clearPendingEditInstruction(editor);
 		renderSuggestion(editor, range, finalReplacementText);
 		// With no selection, `range` can span dozens of lines around the cursor; anchor the
 		// accept/dismiss lens at the cursor's line so it stays in view instead of scrolling off.
@@ -184,6 +187,7 @@ export class InlineEditController implements vscode.Disposable {
 		if (this.pending) {
 			clearSuggestionDecorations(this.pending.editor);
 			clearPendingEditHighlight(this.pending.editor);
+			clearPendingEditInstruction(this.pending.editor);
 		}
 		this.pending = undefined;
 		this.codeLensProvider.hide();
