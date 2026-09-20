@@ -36,6 +36,7 @@ export class InlineEditController implements vscode.Disposable {
 	) {
 		this.disposables.push(
 			vscode.commands.registerCommand('dorsal.inlineEdit', () => this.start()),
+			vscode.commands.registerCommand('dorsal.inlineEditWithDefaultPrompt', () => this.startWithDefaultPrompt()),
 			vscode.commands.registerCommand('dorsal.acceptInlineEdit', () => this.accept()),
 			vscode.commands.registerCommand('dorsal.cancelInlineEdit', () => this.cancel()),
 			vscode.window.onDidChangeActiveTextEditor(() => this.cancel()),
@@ -61,6 +62,18 @@ export class InlineEditController implements vscode.Disposable {
 		});
 		inputBox.onDidHide(() => inputBox.dispose());
 		inputBox.show();
+	}
+
+	private startWithDefaultPrompt(): void {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			return;
+		}
+		const config = readConfig();
+		const instruction = config.inlineEdit.defaultInstruction;
+		if (instruction) {
+			void this.requestEdit(editor, instruction);
+		}
 	}
 
 	private async requestEdit(editor: vscode.TextEditor, instruction: string): Promise<void> {

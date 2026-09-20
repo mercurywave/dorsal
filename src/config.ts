@@ -6,7 +6,7 @@ export interface DorsalConfig {
 	llmServer: { baseUrl: string; apiKey: string; model: string };
 	completions: { triggerMode: 'automatic' | 'manual' | 'off'; useInfillApi: boolean; maxTokens: number; debounceMs: number; maxLines: number; model: string; baseUrl: string; apiKey: string };
 	nextEditSuggestions: { enabled: boolean; autoTrigger: boolean; maxTokens: number; model: string; thinkingBudget: number; baseUrl: string; apiKey: string; strategy: NextEditStrategyChoice };
-	inlineEdit: { maxTokens: number; model: string; thinkingBudget: number; baseUrl: string; apiKey: string };
+	inlineEdit: { defaultInstruction: string; maxTokens: number; model: string; thinkingBudget: number; baseUrl: string; apiKey: string };
 }
 
 export function readConfig(): DorsalConfig {
@@ -38,6 +38,7 @@ export function readConfig(): DorsalConfig {
 			strategy: cfg.get<NextEditStrategyChoice>('nextEditSuggestions.strategy', 'clownfish'),
 		},
 		inlineEdit: {
+			defaultInstruction: cfg.get<string>('inlineEdit.defaultInstruction', 'Implement this'),
 			maxTokens: cfg.get<number>('inlineEdit.maxTokens', 1024),
 			model: cfg.get<string>('inlineEdit.model', ''),
 			thinkingBudget: cfg.get<number>('inlineEdit.thinkingBudget', 200),
