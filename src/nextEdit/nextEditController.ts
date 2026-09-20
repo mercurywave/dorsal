@@ -101,10 +101,10 @@ export class NextEditController implements vscode.Disposable {
 		if (!editor) {
 			return;
 		}
-		void this.requestSuggestion(editor);
+		void this.requestSuggestion(editor, undefined, true);
 	}
 
-	private async requestSuggestion(editor: vscode.TextEditor, recentEdit?: RecentEditContext): Promise<void> {
+	private async requestSuggestion(editor: vscode.TextEditor, recentEdit?: RecentEditContext, isManual: boolean = false): Promise<void> {
 		const config = readConfig();
 		if (!config.nextEditSuggestions.enabled) {
 			return;
@@ -120,6 +120,7 @@ export class NextEditController implements vscode.Disposable {
 			config.nextEditSuggestions.baseUrl || config.llmServer.baseUrl,
 			config.nextEditSuggestions.apiKey || config.llmServer.apiKey,
 			config.nextEditSuggestions.strategy,
+			isManual,
 		);
 		if (!suggestion
 			|| requestId !== this.requestSequence

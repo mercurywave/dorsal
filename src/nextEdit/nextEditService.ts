@@ -31,7 +31,8 @@ export interface RecentEditContext {
 const DIFF_CONTEXT_LINES = 2;
 const MAX_DIFF_HUNKS = 8;
 const MAX_DIFF_CHARS = 12_000;
-const NEXT_EDIT_TIMEOUT_MS = 3_000;
+const NEXT_EDIT_TIMEOUT_MS = 10_000;
+const MANUAL_NEXT_EDIT_TIMEOUT_MS = 30_000;
 
 // Requires a strict, machine-parseable response since model verbosity would otherwise
 // be unreliable to parse into a concrete text edit.
@@ -59,6 +60,7 @@ export class NextEditService {
 		baseUrl: string,
 		apiKey: string,
 		strategyId: string = 'clownfish',
+		isManual: boolean = false,
 	): Promise<StrategyEvaluationResult> {
 		const strategy = resolveNextEditStrategy(strategyId);
 		const strategyRequest = strategy.buildRequest({
@@ -70,16 +72,17 @@ export class NextEditService {
 
 		try {
 			let response = '';
+			const timeoutMs = isManual ? MANUAL_NEXT_EDIT_TIMEOUT_MS : NEXT_EDIT_TIMEOUT_MS;
 			if (strategyRequest.mode === 'chat' && strategyRequest.messages) {
 				response = await this.llmService.chat(
 					strategyRequest.messages,
-					{ maxTokens, model, thinkingBudget, baseUrl, apiKey, timeoutMs: NEXT_EDIT_TIMEOUT_MS },
+					{ maxTokens, model, thinkingBudget, baseUrl, apiKey, timeoutMs },
 					'nextEdit',
 				);
 			} else if (strategyRequest.mode === 'completions' && strategyRequest.prompt !== undefined) {
 				response = await this.llmService.completions(
 					strategyRequest.prompt,
-					{ maxTokens, model, baseUrl, apiKey, timeoutMs: NEXT_EDIT_TIMEOUT_MS },
+					{ maxTokens, model, baseUrl, apiKey, timeoutMs },
 					'nextEdit',
 				);
 			}
@@ -118,6 +121,7 @@ export class NextEditService {
 		baseUrl: string,
 		apiKey: string,
 		strategyId: string = 'clownfish',
+		isManual: boolean = false,
 	): Promise<NextEditSuggestion | undefined> {
 		return (await this.evaluateStrategy(
 			document,
@@ -128,6 +132,7 @@ export class NextEditService {
 			baseUrl,
 			apiKey,
 			strategyId,
+			isManual,
 		)).suggestion;
 	}
 }
