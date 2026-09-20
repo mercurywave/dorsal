@@ -23,6 +23,7 @@ interface PendingEdit {
 	editor: vscode.TextEditor;
 	range: vscode.Range;
 	replacementText: string;
+	instruction: string;
 }
 
 export class InlineEditController implements vscode.Disposable {
@@ -39,6 +40,7 @@ export class InlineEditController implements vscode.Disposable {
 			vscode.commands.registerCommand('dorsal.inlineEditWithDefaultPrompt', () => this.startWithDefaultPrompt()),
 			vscode.commands.registerCommand('dorsal.acceptInlineEdit', () => this.accept()),
 			vscode.commands.registerCommand('dorsal.cancelInlineEdit', () => this.cancel()),
+			vscode.commands.registerCommand('dorsal.regenerateInlineEdit', () => this.regenerate()),
 			vscode.window.onDidChangeActiveTextEditor(() => this.cancel()),
 		);
 	}
@@ -107,12 +109,17 @@ export class InlineEditController implements vscode.Disposable {
 		}
 		const markedSurroundingCode = markedLines.join('\n');
 
+		// Append a short random suffix to break LLM server prompt-level caching on regenerate,
+		// while being harmless noise the model ignores.
+		const cacheBreaker = Math.random().toString(36).slice(2, 8);
+		const effectiveInstruction = `${instruction} #${cacheBreaker}`;
+
 		const userPrompt = hasSelection
 			? `Surrounding code (target marked between ${SELECTION_START_MARKER} and ${SELECTION_END_MARKER}):\n${markedSurroundingCode}\n\n`
-				+ `Selected code to change:\n${targetText}\n\nInstruction: ${instruction}`
+				+ `Selected code to change:\n${targetText}\n\nInstruction: ${effectiveInstruction}`
 			: `Surrounding code (code to change marked between ${SELECTION_START_MARKER} and ${SELECTION_END_MARKER}; `
 				+ `${CURSOR_MARKER} shows the developer's cursor for reference only):\n${markedSurroundingCode}\n\n`
-				+ `Code to change:\n${targetText}\n\nInstruction: ${instruction}\n\n`
+				+ `Code to change:\n${targetText}\n\nInstruction: ${effectiveInstruction}\n\n`
 				+ 'Reply with the full replacement for the marked region, including any lines that should stay unchanged.';
 
 		let response: string;
@@ -148,7 +155,7 @@ export class InlineEditController implements vscode.Disposable {
 		// models often botch its indentation; keep the original rather than risk a bogus diff there.
 		const finalReplacementText = hasSelection ? replacementText : keepFirstLineUnchanged(targetText, replacementText);
 
-		this.pending = { editor, range, replacementText: finalReplacementText };
+		this.pending = { editor, range, replacementText: finalReplacementText, instruction };
 		// Replace the pending highlight/instruction with the diff decorations.
 		clearPendingEditHighlight(editor);
 		clearPendingEditInstruction(editor);
@@ -160,6 +167,8 @@ export class InlineEditController implements vscode.Disposable {
 			acceptCommand: 'dorsal.acceptInlineEdit',
 			acceptTitle: '$(check) Accept Edit (Tab)',
 			dismissCommand: 'dorsal.cancelInlineEdit',
+			regenerateCommand: 'dorsal.regenerateInlineEdit',
+			regenerateTitle: '$(refresh) Regenerate',
 		});
 		void vscode.commands.executeCommand('setContext', CONTEXT_KEY, true);
 	}
@@ -181,6 +190,15 @@ export class InlineEditController implements vscode.Disposable {
 
 	private cancel(): void {
 		this.clearPending();
+	}
+
+	private async regenerate(): Promise<void> {
+		if (!this.pending) {
+			return;
+		}
+		const { editor, instruction } = this.pending;
+		this.clearPending();
+		void this.requestEdit(editor, instruction);
 	}
 
 	private clearPending(): void {

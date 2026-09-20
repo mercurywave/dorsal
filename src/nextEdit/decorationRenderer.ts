@@ -315,6 +315,8 @@ interface ActiveLens {
 	acceptCommand: string;
 	acceptTitle: string;
 	dismissCommand: string;
+	regenerateCommand?: string;
+	regenerateTitle?: string;
 }
 
 // Surfaces clickable Accept/Dismiss actions above a pending suggestion, since the
@@ -324,7 +326,11 @@ export class SuggestionCodeLensProvider implements vscode.CodeLensProvider, vsco
 	readonly onDidChangeCodeLenses = this.changeEmitter.event;
 	private active: ActiveLens | undefined;
 
-	show(uri: vscode.Uri, range: vscode.Range, options: { acceptCommand: string; acceptTitle: string; dismissCommand: string }): void {
+	show(
+		uri: vscode.Uri,
+		range: vscode.Range,
+		options: { acceptCommand: string; acceptTitle: string; dismissCommand: string; regenerateCommand?: string; regenerateTitle?: string },
+	): void {
 		this.active = { uri, range, ...options };
 		this.changeEmitter.fire();
 	}
@@ -341,11 +347,17 @@ export class SuggestionCodeLensProvider implements vscode.CodeLensProvider, vsco
 		if (!this.active || this.active.uri.toString() !== document.uri.toString()) {
 			return [];
 		}
-		const { range, acceptCommand, acceptTitle, dismissCommand } = this.active;
-		return [
+		const { range, acceptCommand, acceptTitle, dismissCommand, regenerateCommand, regenerateTitle } = this.active;
+		const lenses: vscode.CodeLens[] = [
 			new vscode.CodeLens(range, { title: acceptTitle, command: acceptCommand, arguments: [] }),
-			new vscode.CodeLens(range, { title: '$(close) Dismiss', command: dismissCommand, arguments: [] }),
 		];
+		if (regenerateCommand && regenerateTitle) {
+			lenses.push(new vscode.CodeLens(range, { title: regenerateTitle, command: regenerateCommand, arguments: [] }));
+		}
+		lenses.push(
+			new vscode.CodeLens(range, { title: '$(close) Dismiss', command: dismissCommand, arguments: [] }),
+		);
+		return lenses;
 	}
 
 	dispose(): void {

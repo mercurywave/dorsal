@@ -48,6 +48,10 @@
 				"title": "Dorsal: Cancel Inline Edit"
 			},
 			{
+				"command": "dorsal.regenerateInlineEdit",
+				"title": "Dorsal: Regenerate Inline Edit"
+			},
+			{
 				"command": "dorsal.inlineEditWithDefaultPrompt",
 				"title": "Dorsal: Inline Edit with Default Prompt"
 			}
@@ -70,12 +74,17 @@
 			},
 			{
 				"command": "dorsal.acceptInlineEdit",
-				"key": "ctrl+enter",
+				"key": "enter",
 				"when": "editorTextFocus && dorsalInlineEditPreviewVisible"
 			},
 			{
 				"command": "dorsal.cancelInlineEdit",
 				"key": "escape",
+				"when": "editorTextFocus && dorsalInlineEditPreviewVisible"
+			},
+			{
+				"command": "dorsal.regenerateInlineEdit",
+				"key": "ctrl+enter",
 				"when": "editorTextFocus && dorsalInlineEditPreviewVisible"
 			},
 			{
