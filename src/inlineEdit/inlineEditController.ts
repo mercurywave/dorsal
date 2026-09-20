@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { readConfig } from '../config';
 import { LlmService } from '../llm/llmService';
-import { clearSuggestionDecorations, renderSuggestion, SuggestionCodeLensProvider } from '../nextEdit/decorationRenderer';
+import { clearPendingEditHighlight, clearSuggestionDecorations, renderPendingEditHighlight, renderSuggestion, SuggestionCodeLensProvider } from '../nextEdit/decorationRenderer';
 
 const CONTEXT_KEY = 'dorsalInlineEditPreviewVisible';
 const CONTEXT_LINES = 20;
@@ -69,6 +69,7 @@ export class InlineEditController implements vscode.Disposable {
 		if (!editor) {
 			return;
 		}
+		this.cancel();
 		const config = readConfig();
 		const instruction = config.inlineEdit.defaultInstruction;
 		if (instruction) {
@@ -80,12 +81,19 @@ export class InlineEditController implements vscode.Disposable {
 		const config = readConfig();
 		const hasSelection = !editor.selection.isEmpty;
 		const cursor = editor.selection.active;
+		// Save the original selection so we can highlight it while waiting for the response.
+		const originalRange = hasSelection
+			? new vscode.Range(editor.selection.start, editor.selection.end)
+			: new vscode.Range(cursor.line, 0, cursor.line, editor.document.lineAt(cursor.line).text.length);
 		// With no selection, give the model a wide editable window around the cursor instead of
 		// just the current line, so it can insert/delete code that isn't exactly at the cursor.
 		const range = hasSelection
 			? new vscode.Range(editor.selection.start, editor.selection.end)
 			: expandToLineRange(editor.document, cursor.line - NO_SELECTION_EXPAND_LINES, cursor.line + NO_SELECTION_EXPAND_LINES);
 		const targetText = editor.document.getText(range);
+
+		// Show a highlight on the selected range immediately so the user knows what will be edited.
+		renderPendingEditHighlight(editor, originalRange);
 
 		const startLine = Math.max(0, range.start.line - CONTEXT_LINES);
 		const endLine = Math.min(editor.document.lineCount - 1, range.end.line + CONTEXT_LINES);
@@ -139,6 +147,8 @@ export class InlineEditController implements vscode.Disposable {
 		const finalReplacementText = hasSelection ? replacementText : keepFirstLineUnchanged(targetText, replacementText);
 
 		this.pending = { editor, range, replacementText: finalReplacementText };
+		// Replace the pending highlight with the diff decorations.
+		clearPendingEditHighlight(editor);
 		renderSuggestion(editor, range, finalReplacementText);
 		// With no selection, `range` can span dozens of lines around the cursor; anchor the
 		// accept/dismiss lens at the cursor's line so it stays in view instead of scrolling off.
@@ -173,6 +183,7 @@ export class InlineEditController implements vscode.Disposable {
 	private clearPending(): void {
 		if (this.pending) {
 			clearSuggestionDecorations(this.pending.editor);
+			clearPendingEditHighlight(this.pending.editor);
 		}
 		this.pending = undefined;
 		this.codeLensProvider.hide();

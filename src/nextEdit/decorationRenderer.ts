@@ -55,6 +55,15 @@ const offscreenIndicatorDecorationType = vscode.window.createTextEditorDecoratio
 	},
 });
 
+// Highlights the selected range while waiting for the LLM to respond,
+// so the user can see which text they selected for editing.
+// Uses a light background tint that fades away once the diff preview appears.
+const pendingEditHighlightDecorationType = vscode.window.createTextEditorDecorationType({
+	isWholeLine: true,
+	backgroundColor: new vscode.ThemeColor('editor.findMatchHighlightBackground'),
+	opacity: '0.6',
+});
+
 interface DiffOp {
 	kind: 'context' | 'removed' | 'added';
 	line: string;
@@ -211,6 +220,17 @@ export function clearSuggestionDecorations(editor: vscode.TextEditor): void {
 	editor.setDecorations(addedInlineDecorationType, []);
 	editor.setDecorations(suggestionMarkerDecorationType, []);
 	clearOffscreenIndicator(editor);
+	clearPendingEditHighlight(editor);
+}
+
+// Highlights the selected range while waiting for the LLM to respond,
+// so the user can see which text they selected for editing.
+export function renderPendingEditHighlight(editor: vscode.TextEditor, range: vscode.Range): void {
+	editor.setDecorations(pendingEditHighlightDecorationType, [range]);
+}
+
+export function clearPendingEditHighlight(editor: vscode.TextEditor): void {
+	editor.setDecorations(pendingEditHighlightDecorationType, []);
 }
 
 // Renders a "▲/▼ N lines away — Tab to jump" hint on the nearest visible edge line
