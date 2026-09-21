@@ -34,6 +34,15 @@ const addedInlineDecorationType = vscode.window.createTextEditorDecorationType({
 	},
 });
 
+// Decoration for multi-line insertion truncation indicator (e.g. "+3 lines")
+const multiLineInsertionDecorationType = vscode.window.createTextEditorDecorationType({
+	after: {
+		color: new vscode.ThemeColor('statusBarItem.warningForeground'),
+		backgroundColor: new vscode.ThemeColor('statusBarItem.warningBackground'),
+		fontStyle: 'italic',
+	},
+});
+
 // Marks the suggestion on the scrollbar overview ruler so it stays discoverable even
 // while scrolled away; clicking the ruler mark natively jumps VS Code to that position.
 const suggestionMarkerDecorationType = vscode.window.createTextEditorDecorationType({
@@ -152,16 +161,28 @@ export function renderSuggestion(editor: vscode.TextEditor, range: vscode.Range,
 	const blockAddedDecorations: vscode.DecorationOptions[] = [];
 	const inlineRemovedDecorations: vscode.DecorationOptions[] = [];
 	const inlineAddedDecorations: vscode.DecorationOptions[] = [];
+	const multiLineInsertions: vscode.DecorationOptions[] = [];
 
 	const addBlock = (anchorLine: number, lines: string[]) => {
 		if (lines.length === 0) {
 			return;
 		}
 		const anchor = editor.document.lineAt(Math.min(Math.max(anchorLine, 0), editor.document.lineCount - 1));
-		blockAddedDecorations.push({
-			range: new vscode.Range(anchor.range.end, anchor.range.end),
-			renderOptions: { after: { contentText: lines.join('\n') } },
-		});
+		if (lines.length > 1) {
+			// VS Code's `after.contentText` collapses newlines, so we can only show the first line.
+			// Instead of rendering truncated content, show a "+N lines" badge as the only decoration.
+			const remainingLines = lines.length - 1;
+			const pluralSuffix = remainingLines === 1 ? '' : 's';
+			multiLineInsertions.push({
+				range: new vscode.Range(anchor.range.end, anchor.range.end),
+				renderOptions: { after: { contentText: ` --- [+${remainingLines} more line${pluralSuffix}]` } },
+			});
+		} else {
+			blockAddedDecorations.push({
+				range: new vscode.Range(anchor.range.end, anchor.range.end),
+				renderOptions: { after: { contentText: lines[0] } },
+			});
+		}
 	};
 
 	let lineNumber = range.start.line;
@@ -222,6 +243,7 @@ export function renderSuggestion(editor: vscode.TextEditor, range: vscode.Range,
 	editor.setDecorations(addedLineDecorationType, blockAddedDecorations);
 	editor.setDecorations(removedInlineDecorationType, inlineRemovedDecorations);
 	editor.setDecorations(addedInlineDecorationType, inlineAddedDecorations);
+	editor.setDecorations(multiLineInsertionDecorationType, multiLineInsertions);
 	editor.setDecorations(suggestionMarkerDecorationType, [range]);
 }
 
@@ -230,6 +252,7 @@ export function clearSuggestionDecorations(editor: vscode.TextEditor): void {
 	editor.setDecorations(addedLineDecorationType, []);
 	editor.setDecorations(removedInlineDecorationType, []);
 	editor.setDecorations(addedInlineDecorationType, []);
+	editor.setDecorations(multiLineInsertionDecorationType, []);
 	editor.setDecorations(suggestionMarkerDecorationType, []);
 	clearOffscreenIndicator(editor);
 	clearPendingEditHighlight(editor);
@@ -263,16 +286,16 @@ export function renderPendingEditInstruction(editor: vscode.TextEditor, range: v
 	const availableChars = Math.max(0, maxColumn - currentLineLength - 4);
 	let displayText = instruction;
 	if (displayText.length > availableChars && availableChars > 0) {
-		displayText = displayText.slice(0, availableChars - 1) + '…';
+		displayText = displayText.slice(0, availableChars - 1) + String.fromCharCode(8230); // ellipsis
 	}
 	const line = editor.document.lineAt(range.start.line);
 	editor.setDecorations(pendingEditInstructionDecorationType, [{
 		range: new vscode.Range(range.start.line, line.text.length, range.start.line, line.text.length),
-		renderOptions: { after: { contentText: ` — ${displayText}` } },
+		renderOptions: { after: { contentText: ` - ${displayText}` } },
 	}]);
 }
 
-// Renders a "▲/▼ N lines away — Tab to jump" hint on the nearest visible edge line
+// Renders a "▲/▼ N lines away - Tab to jump" hint on the nearest visible edge line
 // when `suggestionLine` falls outside all of `visibleRanges`.
 export function renderOffscreenIndicator(editor: vscode.TextEditor, suggestionLine: number, visibleRanges: readonly vscode.Range[]): void {
 	if (visibleRanges.length === 0) {
@@ -297,11 +320,11 @@ export function renderOffscreenIndicator(editor: vscode.TextEditor, suggestionLi
 		? Math.min(firstVisibleLine + topInset, lastVisibleLine)
 		: Math.max(lastVisibleLine - 1, firstVisibleLine);
 	const distance = above ? firstVisibleLine - suggestionLine : suggestionLine - lastVisibleLine;
-	const arrow = above ? '▲' : '▼';
+	const arrow = above ? String.fromCharCode(9650) : String.fromCharCode(9660); // up/down triangles
 	const plural = distance === 1 ? '' : 's';
 	editor.setDecorations(offscreenIndicatorDecorationType, [{
 		range: editor.document.lineAt(Math.min(Math.max(edgeLine, 0), editor.document.lineCount - 1)).range,
-		renderOptions: { before: { contentText: `${arrow} Dorsal suggestion ${distance} line${plural} ${above ? 'above' : 'below'} — Tab to jump` } },
+		renderOptions: { before: { contentText: `${arrow} Dorsal suggestion ${distance} line${plural} ${above ? 'above' : 'below'} - Tab to jump` } },
 	}]);
 }
 
