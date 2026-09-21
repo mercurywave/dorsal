@@ -1,60 +1,54 @@
 # Dorsal
 
-No-frills inline AI coding assistant for Visual Studio Code. Dorsal talks to a
-[llama.cpp](https://github.com/ggml-org/llama.cpp) server (`llama-server`) to provide:
+**Local-first, inline AI coding for VS Code — think GitHub Copilot, but private and powered by your own models.**
 
-* **Tab completions** - ghost-text inline completions as you type, using llama.cpp's
-  `/infill` fill-in-middle endpoint.
-* **Next edit suggestions** - after you make a change, Dorsal proposes a related
-  follow-up edit elsewhere in the file (shown as strikethrough/ghost-text diff);
-  press `Tab` to accept or `Escape` to dismiss.
-* **Inline quick edits** - select code, press `Ctrl+I`, describe the change in
-  plain English, and preview the diff before accepting (`Ctrl+Enter`) or
-  cancelling (`Escape`).
+Dorsal is a lightweight, in-flow code assistant that lives in VS Code. It works locally first via [llama.cpp](https://github.com/ggml-org/llama.cpp) REST APIs, so your code stays on your machine. This is not a full coding agent — just fast, inline assistance that gets out of the way.
 
-## Requirements
+---
 
-Run a local llama.cpp server, e.g.:
+## What You Can Do
 
-```sh
-llama-server -m your-model.gguf --port 8080
-```
+### Tab Completions
 
-Dorsal talks to it over its REST API - no other setup is required.
+Start typing and get ghost-text suggestions right where your cursor is.
 
-## Extension Settings
+![Tab Completions](./assets/tab-completion.png)
 
-All settings are under the `dorsal.*` prefix:
+### Next Edit Suggestions
 
-* `dorsal.llmServer.baseUrl` - LLM server URL (default `http://127.0.0.1:8080`). Works best with llama.cpp's `llama-server`.
-* `dorsal.llmServer.model` - optional model name to request, for multi-model setups (e.g. llama-swap).
-* `dorsal.llmServer.apiKey` - optional bearer token for the LLM server.
+After you make a change, Dorsal spots patterns and suggests what you might want to edit next — elsewhere in the same file. Accept with `Tab`, dismiss with `Escape`.
 
-`dorsal.llmServer.model` is the default model for all features. Each feature can also override the
-base URL, API key, and model; leave an override empty to use the default:
+![Next Edit Suggestions](./assets/next-edit.png)
 
-* `dorsal.completions.enabled` / `dorsal.completions.useInfillApi` / `dorsal.completions.debounceMs` / `dorsal.completions.maxTokens` /
-  `dorsal.completions.model` / `dorsal.completions.baseUrl` / `dorsal.completions.apiKey` -
-  tab completion behavior.
-* `dorsal.nextEditSuggestions.enabled` / `dorsal.nextEditSuggestions.autoTrigger` /
-  `dorsal.nextEditSuggestions.maxTokens` / `dorsal.nextEditSuggestions.model` /
-  `dorsal.nextEditSuggestions.baseUrl` / `dorsal.nextEditSuggestions.apiKey` -
-  next edit suggestion behavior.
-* `dorsal.inlineEdit.maxTokens` / `dorsal.inlineEdit.model` / `dorsal.inlineEdit.baseUrl` / `dorsal.inlineEdit.apiKey` -
-  response size, model, and server overrides for `Ctrl+I` inline edits.
+### Inline Quick Edits
 
+Press `Ctrl+I`, and describe what you want. An agent will make the update at your selection or near your cursor.
+
+![Inline Quick Edits](./assets/inline-edit.png)
+
+---
+
+## Getting Started
+
+Open the setting page by clicking the fish icon and select settings to get started.
+
+Set the server URL, API key, and model in VS Code settings (`dorsal.llmServer.baseUrl`)
+
+Enable each feature individually in settings and start using the built-in commands and keybindings.
+
+---
 
 ## Commands & Keybindings
 
-* `Dorsal: Suggest Next Edit` - manually request a next-edit suggestion.
-* `Dorsal: Accept Next Edit Suggestion` (`Tab`) / `Dorsal: Dismiss Next Edit Suggestion` (`Escape`).
-* `Dorsal: Edit with AI` (`Ctrl+I`) - open the inline edit prompt for the current selection.
-* `Dorsal: Accept Inline Edit` (`Ctrl+Enter`) / `Dorsal: Cancel Inline Edit` (`Escape`).
+| Command | Keybinding | Description |
+|---|---|---|
+| **Dorsal: Suggest Next Edit** | — | Manually request a next-edit suggestion |
+| **Dorsal: Accept Next Edit Suggestion** | `Tab` | Accept the current suggestion |
+| **Dorsal: Dismiss Next Edit Suggestion** | `Escape` | Dismiss the current suggestion |
+| **Dorsal: Edit with AI** | `Ctrl+I` | Open the inline edit prompt for the current selection, or near your cursor |
+| **Dorsal: Quick Implement** | `Ctrl+Shift+I` | Run an edit at your cursor using a default prompt (e.g. "Implement this") |
+| **Dorsal: Accept Inline Edit** | `Enter` | Accept the inline edit diff |
+| **Dorsal: Regenerate Inline Edit** | `Ctrl+Enter` | Regenerate inline edit |
+| **Dorsal: Cancel Inline Edit** | `Escape` | Cancel the inline edit |
 
-## Known Issues
-
-* Next edit suggestions rely on the model returning a strict, parseable format;
-  malformed responses are silently skipped rather than shown.
-* Infill is only used for inline tab completions; next-edit suggestions intentionally
-  use chat-style prompting only, since the target location is not known ahead of time.
-
+---
